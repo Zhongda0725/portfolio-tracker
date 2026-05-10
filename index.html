@@ -81,18 +81,18 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .hero::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(26,111,212,.07) 0%,transparent 70%);pointer-events:none}
 .dark .hero::before{background:radial-gradient(circle,rgba(74,158,255,.1) 0%,transparent 70%)}
 .hero-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-.hero-total{font-size:34px;font-weight:300;letter-spacing:-.02em;font-family:'DM Mono',monospace;margin-bottom:12px}
+.hero-total{font-size:34px;font-weight:400;letter-spacing:-.01em;font-family:'Noto Sans TC',sans-serif;margin-bottom:12px}
 .hero-row{display:flex;gap:12px}
 .hero-stat{flex:1}
 .hsl{font-size:10px;color:var(--muted);margin-bottom:2px}
-.hsv{font-size:13px;font-family:'DM Mono',monospace;font-weight:500}
+.hsv{font-size:13px;font-family:'Noto Sans TC',sans-serif;font-weight:500}
 .hero-update{font-size:10px;color:var(--hint);margin-top:10px}
 
 /* ── ALLOC ── */
 .alloc-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
 .alloc-pill{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rs);padding:10px;box-shadow:var(--shadow)}
 .alloc-emoji{font-size:14px;margin-bottom:3px}
-.alloc-val{font-size:12px;font-weight:500;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alloc-val{font-size:12px;font-weight:500;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alloc-pct{font-size:10px;color:var(--muted);margin-top:1px}
 
 /* ── DONUT ── */
@@ -102,14 +102,14 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .donut-wrap{position:relative;width:120px;height:120px;flex-shrink:0}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 .donut-center-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.donut-center-val{font-size:13px;font-weight:500;font-family:'DM Mono',monospace;margin-top:1px}
+.donut-center-val{font-size:13px;font-weight:500;font-family:'Noto Sans TC',sans-serif;margin-top:1px}
 .donut-legend{flex:1;display:flex;flex-direction:column;gap:8px}
 .donut-leg{display:flex;align-items:center;gap:8px}
 .donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .donut-leg-info{flex:1}
 .donut-leg-name{font-size:12px;color:var(--text);font-weight:500}
-.donut-leg-val{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
-.donut-leg-pct{font-size:12px;font-family:'DM Mono',monospace;color:var(--muted);margin-left:auto}
+.donut-leg-val{font-size:10px;color:var(--muted);font-family:'Noto Sans TC',sans-serif}
+.donut-leg-pct{font-size:12px;font-family:'Noto Sans TC',sans-serif;color:var(--muted);margin-left:auto}
 
 /* ── CHART ── */
 .chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px;box-shadow:var(--shadow)}
@@ -161,10 +161,10 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .dark .te{background:rgba(180,100,255,.15);color:#c47eff}
 .item-name{font-size:11px;color:var(--hint)}
 .item-mid{text-align:right;margin:0 6px;min-width:78px}
-.item-mv{font-size:14px;font-weight:500;font-family:'DM Mono',monospace}
+.item-mv{font-size:14px;font-weight:500;font-family:'Noto Sans TC',sans-serif}
 .item-cost{font-size:10px;color:var(--hint)}
 .item-right{text-align:right;min-width:48px}
-.item-pnl{font-size:12px;font-family:'DM Mono',monospace;font-weight:500}
+.item-pnl{font-size:12px;font-family:'Noto Sans TC',sans-serif;font-weight:500}
 .item-sub{font-size:10px;color:var(--hint)}
 .item-actions{display:flex;gap:0;margin-left:4px}
 .item-act-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:4px 5px;border-radius:4px;line-height:1}
@@ -251,6 +251,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
         <div class="hero-stat"><div class="hsl">增值佔比</div><div class="hsv mono" id="hero-growth">—</div></div>
       </div>
       <div class="hero-update" id="hero-update">—</div>
+      <div class="hero-update" id="fx-display" style="margin-top:2px">匯率載入中…</div>
     </div>
 
     <!-- DONUT CHART -->
@@ -418,7 +419,7 @@ const auth = getAuth(fbApp);
 const db = getFirestore(fbApp);
 const googleProvider = new GoogleAuthProvider();
 
-const FX = {TWD:1,USD:32.5,JPY:0.22,EUR:35.5};
+let FX = {TWD:1,USD:32.5,JPY:0.22,EUR:35.5}; // 預設值，啟動後從台銀 API 更新
 const CRYPTO_ID = {BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',DOT:'polkadot',AVAX:'avalanche-2',MATIC:'matic-network',UNI:'uniswap',LINK:'chainlink',LTC:'litecoin',ATOM:'cosmos',NEAR:'near',OP:'optimism',ARB:'arbitrum',SUI:'sui',APT:'aptos'};
 
 let uid=null, stocks=[], banks=[], cryptos=[], history=[];
@@ -506,11 +507,58 @@ async function loadUserData(){
     banks=bS.docs.map(d=>({id:d.id,...d.data()}));
     cryptos=cS.docs.map(d=>({id:d.id,...d.data()}));
     history=hS.docs.map(d=>({id:d.id,...d.data()}));
-    await loadTWNames(); // 預載台股名稱表
+    await Promise.all([loadFXRates(), loadTWNames()]); // 同時載入匯率和股票名稱
     await refreshPrices(true);
     await maybeAutoSnapshot();
     renderAll();
   }catch(e){console.error(e);showToast('載入失敗');hideLoad();}
+}
+
+// ── 台銀即時匯率 ─────────────────────────────────────────────
+async function loadFXRates(){
+  try{
+    const proxy='https://api.allorigins.win/get?url=';
+    const url='https://rate.bot.com.tw/xrt/fliste/0/USD,JPY,EUR/JSON';
+    const res=await fetch(proxy+encodeURIComponent(url));
+    const w=await res.json();
+    const data=JSON.parse(w.contents);
+    // 台銀 API 回傳即期買入/賣出，取中間價
+    data.forEach(r=>{
+      const code=r.currency?.code;
+      const buy=parseFloat(r.spotExchangeRate?.buyingRate);
+      const sell=parseFloat(r.spotExchangeRate?.sellingRate);
+      if(code&&buy&&sell){
+        const mid=parseFloat(((buy+sell)/2).toFixed(4));
+        if(code==='USD') FX.USD=mid;
+        else if(code==='JPY') FX.JPY=parseFloat((mid/100).toFixed(6)); // JPY 以百元為單位
+        else if(code==='EUR') FX.EUR=mid;
+      }
+    });
+    updateFXDisplay();
+    console.log('匯率更新：USD='+FX.USD+' JPY='+FX.JPY+' EUR='+FX.EUR);
+  }catch(e){
+    // 改用備用 API
+    try{
+      const res2=await fetch('https://api.exchangerate-api.com/v4/latest/TWD');
+      const d=await res2.json();
+      if(d.rates){
+        if(d.rates.USD) FX.USD=parseFloat((1/d.rates.USD).toFixed(4));
+        if(d.rates.JPY) FX.JPY=parseFloat((1/d.rates.JPY).toFixed(6));
+        if(d.rates.EUR) FX.EUR=parseFloat((1/d.rates.EUR).toFixed(4));
+        updateFXDisplay();
+      }
+    }catch(e2){
+      console.log('匯率載入失敗，使用預設值');
+      updateFXDisplay(true);
+    }
+  }
+}
+
+function updateFXDisplay(isDefault=false){
+  const el=document.getElementById('fx-display');
+  if(!el)return;
+  const tag=isDefault?'（預設值）':'（台銀即期）';
+  el.textContent=`USD ${FX.USD.toFixed(2)} · JPY ${(FX.JPY*100).toFixed(3)} · EUR ${FX.EUR.toFixed(2)} ${tag}`;
 }
 
 // ── 台股名稱快取（從證交所 API 動態載入）───────────────────
@@ -567,22 +615,69 @@ async function loadTWNames(){
 }
 
 // ── PRICES ───────────────────────────────────────────────────
-async function fetchStockPrice(ticker){
-  // 確保名稱表已載入
-  if(!twNamesLoaded) await loadTWNames();
-  const sym=/^\d/.test(ticker)?ticker+'.TW':ticker;
-  try{
-    const res=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`));
-    const w=await res.json();
-    const json=JSON.parse(w.contents);
-    const meta=json?.chart?.result?.[0]?.meta;
-    const p=meta?.regularMarketPrice;
-    // 優先用證交所中文名，其次用 Yahoo 名稱
-    const chName=TW_NAMES[ticker]||'';
-    const fallbackName=meta?.longName||meta?.shortName||'';
-    return p?{price:parseFloat(p.toFixed(2)),name:chName||fallbackName}:null;
-  }catch(e){return null;}
+
+// 判斷上市(tse)或上櫃(otc)
+function getExchange(ticker){
+  // ETF 及一般上市：數字開頭 4 碼或 0 開頭
+  // 上櫃股票：通常 4 碼但特定範圍，簡單以代號判斷
+  // 保守做法：先試 tse，失敗再試 otc（在 fetchTWSE 內部處理）
+  const n=parseInt(ticker);
+  if(isNaN(n)) return 'tse';
+  // 上櫃常見範圍：3、4、5、6 開頭中部分為上櫃
+  // 最保險：同時查 tse 和 otc，取有資料的那個
+  return null; // null = 自動偵測
 }
+
+// 用 TWSE MIS API 批次查詢多檔股票（名稱 + 現價）
+async function fetchTWSEBatch(tickers){
+  if(!tickers.length) return {};
+  const proxy='https://api.allorigins.win/get?url=';
+  const results={};
+
+  // 同時組 tse 和 otc 清單（因為不確定哪個市場）
+  const tseList=tickers.map(t=>`tse_${t}.tw`).join('|');
+  const otcList=tickers.map(t=>`otc_${t}.tw`).join('|');
+  const combined=tseList+'|'+otcList;
+  const url=`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${combined}&json=1&delay=0`;
+
+  try{
+    const res=await fetch(proxy+encodeURIComponent(url));
+    const w=await res.json();
+    const data=JSON.parse(w.contents);
+    if(data?.msgArray){
+      data.msgArray.forEach(item=>{
+        const code=item.c; // 股票代號
+        const name=item.n; // 中文名稱
+        const price=parseFloat(item.z); // 成交價（盤中）
+        const closePrice=parseFloat(item.y); // 昨收價（盤後用）
+        if(!code) return;
+        // z 為 '-' 表示未開盤或已收盤，改用昨收
+        const finalPrice=(!isNaN(price)&&price>0)?price:(!isNaN(closePrice)&&closePrice>0?closePrice:null);
+        if(finalPrice){
+          results[code]={price:finalPrice, name:name||''};
+          // 同步更新名稱快取
+          if(name&&/[\u4e00-\u9fa5]/.test(name)) TW_NAMES[code]=name;
+        }
+      });
+    }
+  }catch(e){
+    console.error('TWSE MIS API 失敗：',e);
+  }
+  return results;
+}
+
+// 查詢單一股票（新增時用）
+async function fetchStockPrice(ticker){
+  if(!twNamesLoaded) await loadTWNames();
+  const batch=await fetchTWSEBatch([ticker]);
+  if(batch[ticker]){
+    const {price,name}=batch[ticker];
+    const chName=TW_NAMES[ticker]||name||'';
+    return {price, name:chName};
+  }
+  return null;
+}
+
 async function fetchCryptoPrice(sym){
   const id=CRYPTO_ID[sym.toUpperCase()]||sym.toLowerCase();
   try{
@@ -591,27 +686,42 @@ async function fetchCryptoPrice(sym){
     return json[id]?.usd||null;
   }catch(e){return null;}
 }
+
 async function refreshPrices(silent=false){
   if(!silent)showLoad('更新報價中...');
   const updates=[];
-  for(const s of stocks){
-    const result=await fetchStockPrice(s.ticker);
-    if(result){
-      s.currentPrice=result.price;
-      if(result.name&&!s.name){s.name=result.name;}
-      const upd={currentPrice:result.price,updatedAt:new Date().toISOString()};
-      if(result.name&&!s.name)upd.name=result.name;
-      updates.push(updateDoc(userDoc('stocks/'+s.id),upd));
-    }
+
+  // 批次查詢所有股票（一次 API 呼叫）
+  if(stocks.length){
+    const tickers=stocks.map(s=>s.ticker);
+    const batch=await fetchTWSEBatch(tickers);
+    stocks.forEach(s=>{
+      const r=batch[s.ticker];
+      if(r){
+        s.currentPrice=r.price;
+        const chName=TW_NAMES[s.ticker]||r.name||'';
+        if(chName&&/[\u4e00-\u9fa5]/.test(chName)) s.name=chName;
+        const upd={currentPrice:r.price,updatedAt:new Date().toISOString()};
+        if(s.name) upd.name=s.name;
+        updates.push(updateDoc(userDoc('stocks/'+s.id),upd));
+      }
+    });
   }
+
+  // 批次查詢所有加密貨幣
   if(cryptos.length){
     const ids=cryptos.map(c=>CRYPTO_ID[c.sym]||c.sym.toLowerCase()).join(',');
     try{
       const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
       const json=await res.json();
-      cryptos.forEach(c=>{const id=CRYPTO_ID[c.sym]||c.sym.toLowerCase();const p=json[id]?.usd;if(p){c.currentPrice=p;updates.push(updateDoc(userDoc('cryptos/'+c.id),{currentPrice:p,updatedAt:new Date().toISOString()}));}});
+      cryptos.forEach(c=>{
+        const id=CRYPTO_ID[c.sym]||c.sym.toLowerCase();
+        const p=json[id]?.usd;
+        if(p){c.currentPrice=p;updates.push(updateDoc(userDoc('cryptos/'+c.id),{currentPrice:p,updatedAt:new Date().toISOString()}));}
+      });
     }catch(e){}
   }
+
   await Promise.allSettled(updates);
   document.getElementById('hero-update').textContent='報價更新：'+fmtDate(new Date());
   if(!silent){hideLoad();showToast('報價已更新');renderAll();}
@@ -622,11 +732,13 @@ window.onTickerInput=(el)=>{
   if(!ticker||ticker.length<2){badge.textContent='輸入代號查詢';badge.className='price-badge';return;}
   badge.textContent='查詢中…';badge.className='price-badge';
   tickerDebounce=setTimeout(async()=>{
-    const result=await fetchStockPrice(ticker);
+    const batch=await fetchTWSEBatch([ticker]);
+    const result=batch[ticker];
     if(result){
       priceCache[ticker]={price:result.price,name:result.name};
-      const displayName=TW_NAMES[ticker]||result.name||'';
-      badge.textContent='NT$'+fmt(result.price,1)+(displayName?'  '+displayName:'');
+      const chName=TW_NAMES[ticker]||result.name||'';
+      const displayName=chName&&/[\u4e00-\u9fa5]/.test(chName)?chName:'';
+      badge.textContent='NT$'+fmt(result.price,2)+(displayName?'  '+displayName:'');
       badge.className='price-badge loaded';
     }else{badge.textContent='找不到代號';badge.className='price-badge';}
   },800);
@@ -736,7 +848,6 @@ function isETF(ticker){
 function renderStocks(t){
   const el=document.getElementById('stock-list');const tot=t.totalMV||1;
   if(!stocks.length){el.innerHTML='<div class="empty-state">尚未新增持倉<br>輸入台股代號即時查詢現價</div>';return;}
-  // ETF 排最前，其次個股
   const sorted=[...stocks].sort((a,b)=>{
     const ae=isETF(a.ticker),be=isETF(b.ticker);
     if(ae&&!be)return -1;if(!ae&&be)return 1;return 0;
@@ -747,20 +858,28 @@ function renderStocks(t){
     const cost=Math.round(s.costPrice*s.shares);
     const pnl=mv-cost;
     const pnlPct=cost>0?pnl/cost*100:0;
-    const displayName=TW_NAMES[s.ticker]||s.name||'';
+
+    // 只取中文名稱，英文名稱一律不顯示
+    const rawName=TW_NAMES[s.ticker]||s.name||'';
+    const isChinese=s=>s&&/[\u4e00-\u9fa5]/.test(s);
+    const displayName=isChinese(rawName)?rawName:'';
+
     const etf=isETF(s.ticker);
     const badgeClass=etf?'te':'ts';
-    const badgeLabel=etf?'ETF':'股票';
-    // 現價：若與成本相同表示未抓到，顯示提示
-    const priceOk=s.currentPrice&&s.currentPrice!==s.costPrice;
-    const priceStr=priceOk?`$${fmt(cp,2)}`:'<span style="color:var(--hint)">待更新</span>';
+
+    // 現價判斷：有 currentPrice 且不等於 costPrice 才算抓到
+    const priceOk=s.currentPrice&&Math.abs(s.currentPrice-s.costPrice)>0.001;
+    const priceStr=priceOk?`現價 $${fmt(cp,2)}`:'<span style="color:var(--hint)">現價待更新</span>';
+
+    // 損益顏色與符號
+    const pnlColor=pnl>=0?'g':'r';
+    const pnlSign=pnl>=0?'+':'';
+
     return `<div class="item">
       <div class="item-left">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
           <div class="item-ticker ${badgeClass}">${s.ticker}</div>
-          ${displayName
-            ?`<span style="font-size:12px;font-weight:500;color:var(--text)">${displayName}</span>`
-            :`<span style="font-size:11px;color:var(--hint)">名稱載入中…</span>`}
+          ${displayName?`<span style="font-size:12px;font-weight:500;color:var(--text)">${displayName}</span>`:''}
         </div>
         <div class="item-name">${fmt(s.shares)} 股 · 成本 $${fmt(s.costPrice,2)}</div>
       </div>
@@ -768,9 +887,10 @@ function renderStocks(t){
         <div class="item-mv">NT$${fmt(mv)}</div>
         <div class="item-cost">成本 NT$${fmt(cost)}</div>
       </div>
-      <div class="item-right">
-        <div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(2)}%</div>
-        <div class="item-sub">${priceStr}</div>
+      <div class="item-right" style="min-width:80px">
+        <div class="item-pnl ${pnlColor}">${pnlSign}${pnlPct.toFixed(2)}%</div>
+        <div class="item-pnl ${pnlColor}" style="font-size:11px;margin-top:1px">${pnlSign}NT$${fmt(Math.abs(pnl))}</div>
+        <div class="item-sub" style="margin-top:2px">${priceStr}</div>
       </div>
       <div class="item-actions">
         <button class="item-act-btn" onclick="openModal('stock','${s.id}')" title="買入/賣出">⊕</button>
@@ -957,7 +1077,7 @@ window.delBank=async(id)=>{const b=banks.find(x=>x.id===id);if(!confirm('確定�
 window.delCrypto=async(id)=>{const c=cryptos.find(x=>x.id===id);if(!confirm('確定刪除 '+(c?.sym||'')+'？'))return;await deleteDoc(userDoc('cryptos/'+id));cryptos=cryptos.filter(x=>x.id!==id);renderAll();};
 
 // ── TAB & REFRESH ────────────────────────────────────────────
-window.refreshAll=async()=>{await refreshPrices(false);await maybeAutoSnapshot();};
+window.refreshAll=async()=>{await loadFXRates();await refreshPrices(false);await maybeAutoSnapshot();};
 window.switchTab=(t)=>{
   ['bank','stock','crypto'].forEach((s,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',s===t);
