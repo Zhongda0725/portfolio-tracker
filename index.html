@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="資產">
+<meta name="theme-color" content="#0f0f0f">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>資產追蹤器</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0f0f0f;
+  --surface: #191919;
+  --surface2: #222;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0ede8;
+  --muted: #888;
+  --hint: #555;
+  --green: #4caf82;
+  --red: #e06c5a;
+  --blue: #4a9eff;
+  --gold: #d4a847;
+  --r: 14px; --rs: 8px;
+  --safe-top: env(safe-area-inset-top,0px);
+  --safe-bot: env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100dvh;overscroll-behavior:none}
+.mono{font-family:'DM Mono',monospace}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100dvh}
+.screen.show{display:flex;flex-direction:column}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{align-items:center;justify-content:center;padding:2rem 1.5rem;
+  background:radial-gradient(ellipse at 30% 20%,rgba(74,158,255,.08) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 80%,rgba(76,175,130,.06) 0%,transparent 60%)}
+.auth-logo{width:72px;height:72px;background:var(--surface);border:0.5px solid var(--border2);
+  border-radius:18px;display:flex;align-items:center;justify-content:center;
+  font-size:32px;margin-bottom:1.5rem;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.auth-title{font-size:24px;font-weight:500;margin-bottom:6px}
+.auth-sub{font-size:13px;color:var(--muted);text-align:center;line-height:1.7;margin-bottom:2rem;max-width:280px}
+.auth-card{width:100%;max-width:340px;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:1.25rem}
+.auth-tabs{display:flex;gap:2px;background:var(--bg);border-radius:var(--rs);padding:3px;margin-bottom:1.25rem}
+.auth-tab{flex:1;padding:7px;font-size:13px;text-align:center;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;border-radius:6px;font-family:inherit;transition:all .15s}
+.auth-tab.active{background:var(--surface2);color:var(--text);font-weight:500}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.field input{width:100%;font-size:14px;padding:10px 12px;border-radius:var(--rs);
+  border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit}
+.field input:focus{outline:none;border-color:var(--blue)}
+.primary-btn{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;
+  border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.primary-btn:active{opacity:.8}
+.auth-err{font-size:12px;color:var(--red);margin-top:8px;text-align:center;min-height:18px}
+
+/* ── APP ── */
+#app-screen{flex-direction:column}
+.statusbar-pad{height:calc(var(--safe-top) + 10px);flex-shrink:0}
+.topnav{padding:0 1rem .75rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.app-title{font-size:17px;font-weight:500;letter-spacing:-.02em}
+.nav-right{display:flex;gap:8px;align-items:center}
+.icon-btn{width:34px;height:34px;background:var(--surface);border:0.5px solid var(--border);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer}
+.icon-btn:active{background:var(--surface2)}
+.user-avatar{width:30px;height:30px;background:var(--blue);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;cursor:pointer}
+
+.scroll{flex:1;overflow-y:auto;padding:0 1rem;-webkit-overflow-scrolling:touch}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── HERO ── */
+.hero{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);
+  padding:1.25rem;margin-bottom:10px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;
+  border-radius:50%;background:radial-gradient(circle,rgba(74,158,255,.1) 0%,transparent 70%);pointer-events:none}
+.hero-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.hero-total{font-size:34px;font-weight:300;letter-spacing:-.02em;font-family:'DM Mono',monospace;margin-bottom:12px}
+.hero-row{display:flex;gap:12px}
+.hero-stat{flex:1}
+.hsl{font-size:10px;color:var(--muted);margin-bottom:2px}
+.hsv{font-size:13px;font-family:'DM Mono',monospace;font-weight:500}
+.hero-update{font-size:10px;color:var(--hint);margin-top:10px}
+
+/* ── ALLOC ── */
+.alloc-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.alloc-pill{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rs);padding:10px}
+.alloc-emoji{font-size:14px;margin-bottom:3px}
+.alloc-val{font-size:12px;font-weight:500;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alloc-pct{font-size:10px;color:var(--muted);margin-top:1px}
+
+/* ── CHART ── */
+.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px}
+.chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.chart-title{font-size:13px;font-weight:500}
+.legend{display:flex;gap:10px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
+.leg-line{width:12px;height:2px;border-radius:1px}
+.chart-wrap{position:relative;height:160px}
+.chart-empty{height:120px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:var(--hint);text-align:center;line-height:1.7}
+
+/* ── TABS ── */
+.tabs-wrap{margin-bottom:10px}
+.tabs{display:flex;gap:2px;background:var(--surface);border:0.5px solid var(--border);
+  border-radius:var(--rs);padding:3px}
+.tab{flex:1;padding:8px 0;font-size:12px;text-align:center;border:none;
+  background:transparent;color:var(--muted);cursor:pointer;border-radius:6px;
+  font-family:inherit;transition:all .15s}
+.tab.active{background:var(--surface2);color:var(--text);font-weight:500}
+.panel{display:none}.panel.active{display:block}
+
+/* ── SECTION ── */
+.section{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px}
+.section-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.add-note{font-size:11px;color:var(--hint);background:var(--surface2);border-radius:var(--rs);padding:8px 10px;margin-bottom:12px;line-height:1.6}
+
+/* ── FORM ── */
+.form-fields{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ff label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.ff input,.ff select{width:100%;font-size:14px;padding:10px 12px;border-radius:var(--rs);
+  border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit;-webkit-appearance:none}
+.ff input:focus,.ff select:focus{outline:none;border-color:var(--blue)}
+.price-row{display:flex;gap:8px;align-items:flex-end}
+.price-row .ff{flex:1}
+.price-badge{font-size:11px;padding:4px 8px;border-radius:var(--rs);background:var(--surface2);
+  color:var(--muted);white-space:nowrap;margin-bottom:0;align-self:flex-end;border:0.5px solid var(--border2)}
+.price-badge.loaded{color:var(--green);border-color:rgba(76,175,130,.3)}
+.add-btn{width:100%;padding:12px;background:var(--surface2);color:var(--text);
+  border:0.5px solid var(--border2);border-radius:var(--rs);font-size:14px;
+  cursor:pointer;font-family:inherit;font-weight:500;transition:background .15s}
+.add-btn:active{background:var(--border2)}
+.add-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── LIST ── */
+.item-list{display:flex;flex-direction:column}
+.item{display:flex;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--border)}
+.item:last-child{border-bottom:none}
+.item-left{flex:1;min-width:0}
+.item-ticker{display:inline-block;border-radius:5px;padding:2px 7px;font-size:12px;
+  font-weight:500;font-family:'DM Mono',monospace;margin-bottom:2px}
+.ts{background:rgba(74,158,255,.15);color:var(--blue)}
+.tb{background:rgba(76,175,130,.15);color:var(--green)}
+.tc{background:rgba(212,168,71,.15);color:var(--gold)}
+.item-name{font-size:11px;color:var(--hint)}
+.item-mid{text-align:right;margin:0 8px;min-width:80px}
+.item-mv{font-size:14px;font-weight:500;font-family:'DM Mono',monospace}
+.item-cost{font-size:10px;color:var(--hint)}
+.item-right{text-align:right;min-width:50px}
+.item-pnl{font-size:12px;font-family:'DM Mono',monospace;font-weight:500}
+.item-sub{font-size:10px;color:var(--hint)}
+.item-del{background:none;border:none;color:var(--hint);cursor:pointer;font-size:18px;padding:4px 6px;margin-left:2px}
+.item-del:active{color:var(--red)}
+.g{color:var(--green)}.r{color:var(--red)}
+.empty-state{text-align:center;padding:2rem 1rem;color:var(--hint);font-size:13px;line-height:1.8}
+
+/* ── PRICE SEARCH INDICATOR ── */
+.searching{display:inline-block;animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── LOADING ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(15,15,15,.85);
+  display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:12px;z-index:999;backdrop-filter:blur(4px)}
+.loading-overlay.show{display:flex}
+.spin{display:inline-block;animation:spin .7s linear infinite;font-size:24px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--muted)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(var(--safe-bot) + 24px);left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);
+  border-radius:20px;padding:9px 18px;font-size:13px;opacity:0;
+  transition:all .25s;pointer-events:none;z-index:9999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── BOTTOM PAD ── */
+.bottom-pad{height:calc(var(--safe-bot) + 24px)}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="screen show" id="auth-screen">
+  <div class="auth-logo">📊</div>
+  <h1 class="auth-title">資產追蹤器</h1>
+  <p class="auth-sub">追蹤股票、銀行帳戶、加密貨幣，每天自動更新收盤價</p>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">登入</button>
+      <button class="auth-tab" onclick="switchAuthTab('register')">註冊</button>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input id="auth-email" type="email" placeholder="you@example.com" inputmode="email" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>密碼</label>
+      <input id="auth-password" type="password" placeholder="至少 6 個字元" autocomplete="current-password">
+    </div>
+    <div class="field" id="confirm-field" style="display:none">
+      <label>確認密碼</label>
+      <input id="auth-confirm" type="password" placeholder="再輸入一次" autocomplete="new-password">
+    </div>
+    <button class="primary-btn" id="auth-btn" onclick="handleAuth()">登入</button>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div class="screen" id="app-screen">
+  <div class="statusbar-pad"></div>
+  <div class="topnav">
+    <span class="app-title">資產追蹤器</span>
+    <div class="nav-right">
+      <div class="icon-btn" onclick="refreshAll()" title="更新報價">↻</div>
+      <div class="user-avatar" id="user-avatar" onclick="handleLogout()" title="登出">?</div>
+    </div>
+  </div>
+
+  <div class="scroll">
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-label">總資產市值</div>
+      <div class="hero-total mono" id="hero-total">NT$0</div>
+      <div class="hero-row">
+        <div class="hero-stat"><div class="hsl">投入成本</div><div class="hsv mono" id="hero-cost">NT$0</div></div>
+        <div class="hero-stat"><div class="hsl">未實現損益</div><div class="hsv mono" id="hero-pnl">—</div></div>
+        <div class="hero-stat"><div class="hsl">增值佔比</div><div class="hsv mono" id="hero-growth">—</div></div>
+      </div>
+      <div class="hero-update" id="hero-update">—</div>
+    </div>
+
+    <!-- ALLOC -->
+    <div class="alloc-row">
+      <div class="alloc-pill"><div class="alloc-emoji">📈</div><div class="alloc-val mono" id="a-stock">—</div><div class="alloc-pct" id="ap-stock">股票</div></div>
+      <div class="alloc-pill"><div class="alloc-emoji">🏦</div><div class="alloc-val mono" id="a-bank">—</div><div class="alloc-pct" id="ap-bank">銀行</div></div>
+      <div class="alloc-pill"><div class="alloc-emoji">₿</div><div class="alloc-val mono" id="a-crypto">—</div><div class="alloc-pct" id="ap-crypto">加密</div></div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-card">
+      <div class="chart-hdr">
+        <span class="chart-title">資產走勢</span>
+        <div class="legend">
+          <div class="leg"><div class="leg-line" style="background:#4a9eff"></div>市值</div>
+          <div class="leg"><div class="leg-line" style="background:#555;border-top:1.5px dashed #555;height:0"></div>成本</div>
+        </div>
+      </div>
+      <div id="chart-empty" class="chart-empty">每天開啟 App 自動快照<br>累積幾天後顯示趨勢</div>
+      <div id="chart-wrap" class="chart-wrap" style="display:none">
+        <canvas id="trend-chart" role="img" aria-label="資產市值走勢圖"></canvas>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-wrap">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('stock')">📈 股票</button>
+        <button class="tab" onclick="switchTab('bank')">🏦 銀行</button>
+        <button class="tab" onclick="switchTab('crypto')">₿ 加密</button>
+      </div>
+    </div>
+
+    <!-- STOCK -->
+    <div class="panel active" id="panel-stock">
+      <div class="section">
+        <div class="section-title">新增台股持倉</div>
+        <div class="form-fields">
+          <div class="price-row">
+            <div class="ff">
+              <label>股票代號</label>
+              <input id="s-ticker" placeholder="2330、0050" style="text-transform:uppercase" inputmode="text" oninput="onTickerInput(this)">
+            </div>
+            <div class="price-badge" id="s-price-badge">輸入代號查詢</div>
+          </div>
+          <div class="row2">
+            <div class="ff"><label>持有股數</label><input id="s-shares" type="number" placeholder="100" inputmode="decimal"></div>
+            <div class="ff"><label>平均成本 (元)</label><input id="s-cost" type="number" placeholder="750" inputmode="decimal"></div>
+          </div>
+        </div>
+        <button class="add-btn" id="s-add-btn" onclick="addStock()">新增持倉 +</button>
+      </div>
+      <div class="section">
+        <div class="section-title">持倉明細</div>
+        <div class="item-list" id="stock-list"><div class="empty-state">尚未新增持倉</div></div>
+      </div>
+    </div>
+
+    <!-- BANK -->
+    <div class="panel" id="panel-bank">
+      <div class="section">
+        <div class="section-title">新增銀行帳戶</div>
+        <div class="form-fields">
+          <div class="ff"><label>帳戶名稱</label><input id="b-name" placeholder="玉山活存、富邦定存"></div>
+          <div class="row2">
+            <div class="ff"><label>幣別</label>
+              <select id="b-currency">
+                <option value="TWD">台幣 TWD</option>
+                <option value="USD">美元 USD</option>
+                <option value="JPY">日圓 JPY</option>
+                <option value="EUR">歐元 EUR</option>
+              </select>
+            </div>
+            <div class="ff"><label>餘額</label><input id="b-balance" type="number" placeholder="100000" inputmode="decimal"></div>
+          </div>
+        </div>
+        <button class="add-btn" onclick="addBank()">新增帳戶 +</button>
+      </div>
+      <div class="section">
+        <div class="section-title">帳戶明細 <span style="font-weight:300;font-size:10px;color:var(--hint);text-transform:none">點擊餘額更新</span></div>
+        <div class="item-list" id="bank-list"><div class="empty-state">尚未新增帳戶</div></div>
+      </div>
+    </div>
+
+    <!-- CRYPTO -->
+    <div class="panel" id="panel-crypto">
+      <div class="section">
+        <div class="section-title">新增加密貨幣</div>
+        <div class="form-fields">
+          <div class="price-row">
+            <div class="ff">
+              <label>幣種代號</label>
+              <input id="c-sym" placeholder="BTC、ETH、SOL" style="text-transform:uppercase" inputmode="text" oninput="onCryptoInput(this)">
+            </div>
+            <div class="price-badge" id="c-price-badge">輸入代號查詢</div>
+          </div>
+          <div class="row2">
+            <div class="ff"><label>持有數量</label><input id="c-amount" type="number" placeholder="0.1" step="any" inputmode="decimal"></div>
+            <div class="ff"><label>平均成本 (USD)</label><input id="c-cost" type="number" placeholder="60000" inputmode="decimal"></div>
+          </div>
+        </div>
+        <button class="add-btn" id="c-add-btn" onclick="addCrypto()">新增加密貨幣 +</button>
+      </div>
+      <div class="section">
+        <div class="section-title">持幣明細</div>
+        <div class="item-list" id="crypto-list"><div class="empty-state">尚未新增加密貨幣</div></div>
+      </div>
+    </div>
+
+    <div class="bottom-pad"></div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loading"><span class="spin">↻</span><span class="loading-text" id="loading-text">載入中...</span></div>
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDwBnOTZo-la_hhKp4TTFPv85_Nq8VYY-o",
+  authDomain: "portfolio-tracker-d8b39.firebaseapp.com",
+  projectId: "portfolio-tracker-d8b39",
+  storageBucket: "portfolio-tracker-d8b39.firebasestorage.app",
+  messagingSenderId: "1034430914829",
+  appId: "1:1034430914829:web:035b116d86eebe8d535044"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// ── CONSTANTS ────────────────────────────────────────────────
+const FX = {TWD:1, USD:32.5, JPY:0.22, EUR:35.5};
+const CRYPTO_ID = {
+  BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',
+  XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',DOT:'polkadot',
+  AVAX:'avalanche-2',MATIC:'matic-network',UNI:'uniswap',
+  LINK:'chainlink',LTC:'litecoin',ATOM:'cosmos',NEAR:'near',
+  OP:'optimism',ARB:'arbitrum',SUI:'sui',APT:'aptos',
+};
+
+// ── STATE ────────────────────────────────────────────────────
+let uid = null;
+let stocks = [], banks = [], cryptos = [], history = [];
+let priceCache = {}; // ticker -> price
+let trendChart = null;
+let tickerDebounce = null;
+let cryptoDebounce = null;
+
+// ── UTILS ────────────────────────────────────────────────────
+function fmt(n,d=0){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('zh-TW',{minimumFractionDigits:d,maximumFractionDigits:d})}
+function fmtK(n){if(n==null||isNaN(n))return '—';if(Math.abs(n)>=1e6)return (n/1e6).toFixed(1)+'M';if(Math.abs(n)>=1000)return (n/1000).toFixed(0)+'K';return fmt(n)}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+function showLoad(msg='載入中...'){document.getElementById('loading-text').textContent=msg;document.getElementById('loading').classList.add('show')}
+function hideLoad(){document.getElementById('loading').classList.remove('show')}
+window.showToast = showToast;
+
+// ── AUTH UI ──────────────────────────────────────────────────
+let authMode = 'login';
+window.switchAuthTab = (mode) => {
+  authMode = mode;
+  document.querySelectorAll('.auth-tab').forEach((el,i)=>el.classList.toggle('active',['login','register'][i]===mode));
+  document.getElementById('confirm-field').style.display = mode==='register'?'block':'none';
+  document.getElementById('auth-btn').textContent = mode==='login'?'登入':'註冊帳號';
+  document.getElementById('auth-err').textContent='';
+};
+
+window.handleAuth = async () => {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-password').value;
+  const confirm = document.getElementById('auth-confirm').value;
+  const errEl = document.getElementById('auth-err');
+  errEl.textContent='';
+
+  if(!email||!pass){errEl.textContent='請填寫 Email 和密碼';return;}
+  if(authMode==='register'&&pass!==confirm){errEl.textContent='兩次密碼不一致';return;}
+  if(pass.length<6){errEl.textContent='密碼至少需要 6 個字元';return;}
+
+  showLoad(authMode==='login'?'登入中...':'註冊中...');
+  try {
+    if(authMode==='login') await signInWithEmailAndPassword(auth,email,pass);
+    else await createUserWithEmailAndPassword(auth,email,pass);
+  } catch(e) {
+    hideLoad();
+    const msgs={'auth/user-not-found':'找不到此帳號','auth/wrong-password':'密碼錯誤',
+      'auth/email-already-in-use':'此 Email 已被註冊','auth/invalid-email':'Email 格式不正確',
+      'auth/invalid-credential':'帳號或密碼錯誤'};
+    errEl.textContent = msgs[e.code]||('錯誤：'+e.message);
+  }
+};
+
+window.handleLogout = async () => {
+  if(!confirm('確定要登出？'))return;
+  await signOut(auth);
+};
+
+// ── AUTH STATE ───────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if(user) {
+    uid = user.uid;
+    const initial = user.email.charAt(0).toUpperCase();
+    document.getElementById('user-avatar').textContent = initial;
+    document.getElementById('auth-screen').classList.remove('show');
+    document.getElementById('app-screen').classList.add('show');
+    await loadUserData();
+    hideLoad();
+  } else {
+    uid = null;
+    stocks=[]; banks=[]; cryptos=[]; history=[];
+    document.getElementById('app-screen').classList.remove('show');
+    document.getElementById('auth-screen').classList.add('show');
+    hideLoad();
+  }
+});
+
+// ── FIRESTORE HELPERS ────────────────────────────────────────
+function userDoc(path){ return doc(db, 'users', uid, ...path.split('/')); }
+function userCol(path){ return collection(db, 'users', uid, path); }
+
+async function loadUserData() {
+  showLoad('載入資料中...');
+  try {
+    const [stockSnap, bankSnap, cryptoSnap, histSnap] = await Promise.all([
+      getDocs(userCol('stocks')),
+      getDocs(userCol('banks')),
+      getDocs(userCol('cryptos')),
+      getDocs(query(userCol('history'), orderBy('date','asc'), limit(90))),
+    ]);
+    stocks = stockSnap.docs.map(d=>({id:d.id,...d.data()}));
+    banks = bankSnap.docs.map(d=>({id:d.id,...d.data()}));
+    cryptos = cryptoSnap.docs.map(d=>({id:d.id,...d.data()}));
+    history = histSnap.docs.map(d=>({id:d.id,...d.data()}));
+    await refreshPrices(true);
+    await maybeAutoSnapshot();
+    renderAll();
+  } catch(e) { console.error(e); showToast('載入失敗：'+e.message); hideLoad(); }
+}
+
+// ── PRICE FETCHING ───────────────────────────────────────────
+async function fetchStockPrice(ticker) {
+  const symbol = /^\d/.test(ticker) ? ticker+'.TW' : ticker;
+  const proxy = 'https://api.allorigins.win/get?url=';
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
+  try {
+    const res = await fetch(proxy + encodeURIComponent(yahooUrl));
+    const wrapper = await res.json();
+    const json = JSON.parse(wrapper.contents);
+    const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return price ? parseFloat(price.toFixed(2)) : null;
+  } catch(e) { return null; }
+}
+
+async function fetchCryptoPrice(sym) {
+  const id = CRYPTO_ID[sym.toUpperCase()] || sym.toLowerCase();
+  try {
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`);
+    const json = await res.json();
+    return json[id]?.usd || null;
+  } catch(e) { return null; }
+}
+
+async function refreshPrices(silent=false) {
+  if(!silent) showLoad('更新報價中...');
+  const updates = [];
+
+  // Update stocks
+  for(const s of stocks) {
+    const price = await fetchStockPrice(s.ticker);
+    if(price) {
+      s.currentPrice = price;
+      updates.push(updateDoc(userDoc('stocks/'+s.id), {currentPrice:price, updatedAt:new Date().toISOString()}));
+    }
+  }
+
+  // Update cryptos
+  if(cryptos.length) {
+    const syms = cryptos.map(c=>c.sym);
+    const ids = syms.map(s=>CRYPTO_ID[s]||s.toLowerCase()).join(',');
+    try {
+      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+      const json = await res.json();
+      cryptos.forEach(c => {
+        const id = CRYPTO_ID[c.sym]||c.sym.toLowerCase();
+        const price = json[id]?.usd;
+        if(price) {
+          c.currentPrice = price;
+          updates.push(updateDoc(userDoc('cryptos/'+c.id), {currentPrice:price, updatedAt:new Date().toISOString()}));
+        }
+      });
+    } catch(e) {}
+  }
+
+  await Promise.allSettled(updates);
+  const now = new Date();
+  document.getElementById('hero-update').textContent =
+    '報價更新：' + now.getMonth()+1 + '/' + now.getDate() + ' ' +
+    now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+  if(!silent) { hideLoad(); showToast('報價已更新'); renderAll(); }
+}
+
+// ── LIVE PRICE LOOKUP (when typing ticker) ────────────────────
+window.onTickerInput = (el) => {
+  clearTimeout(tickerDebounce);
+  const ticker = el.value.trim().toUpperCase();
+  const badge = document.getElementById('s-price-badge');
+  if(!ticker || ticker.length < 2) { badge.textContent='輸入代號查詢'; badge.className='price-badge'; return; }
+  badge.textContent='查詢中…';
+  badge.className='price-badge';
+  tickerDebounce = setTimeout(async () => {
+    const price = await fetchStockPrice(ticker);
+    if(price) {
+      priceCache[ticker] = price;
+      badge.textContent = 'NT$' + fmt(price,1);
+      badge.className = 'price-badge loaded';
+    } else {
+      badge.textContent = '找不到代號';
+      badge.className = 'price-badge';
+    }
+  }, 800);
+};
+
+window.onCryptoInput = (el) => {
+  clearTimeout(cryptoDebounce);
+  const sym = el.value.trim().toUpperCase();
+  const badge = document.getElementById('c-price-badge');
+  if(!sym || sym.length < 2) { badge.textContent='輸入代號查詢'; badge.className='price-badge'; return; }
+  badge.textContent='查詢中…';
+  badge.className='price-badge';
+  cryptoDebounce = setTimeout(async () => {
+    const price = await fetchCryptoPrice(sym);
+    if(price) {
+      priceCache['C_'+sym] = price;
+      badge.textContent = '$' + (price > 1 ? fmt(price,2) : price.toFixed(4));
+      badge.className = 'price-badge loaded';
+    } else {
+      badge.textContent = '找不到幣種';
+      badge.className = 'price-badge';
+    }
+  }, 800);
+};
+
+// ── SNAPSHOT ─────────────────────────────────────────────────
+async function maybeAutoSnapshot() {
+  const today = new Date().toLocaleDateString('zh-TW');
+  const existing = history.find(h=>h.date===today);
+  if(existing) return;
+  const t = calcTotals();
+  if(t.totalMV === 0) return;
+  const snap = {date:today, totalMV:t.totalMV, totalCost:t.totalCost,
+    stockMV:t.stockMV, bankMV:t.bankMV, cryptoMV:t.cryptoMV,
+    createdAt:new Date().toISOString()};
+  try {
+    const ref = await addDoc(userCol('history'), snap);
+    history.push({id:ref.id,...snap});
+    if(history.length>90) {
+      const old = history.shift();
+      await deleteDoc(userDoc('history/'+old.id));
+    }
+  } catch(e) {}
+}
+
+// ── CALC ─────────────────────────────────────────────────────
+function calcTotals() {
+  let stockMV=0,stockCost=0,bankMV=0,cryptoMV=0,cryptoCost=0;
+  stocks.forEach(s=>{ stockMV+=(s.currentPrice||s.costPrice)*s.shares; stockCost+=s.costPrice*s.shares; });
+  banks.forEach(b=>{ bankMV+=b.balance*(FX[b.currency]||1); });
+  cryptos.forEach(c=>{ cryptoMV+=(c.currentPrice||c.costUSD)*c.amount*FX.USD; cryptoCost+=c.costUSD*c.amount*FX.USD; });
+  return {stockMV,stockCost,bankMV,cryptoMV,cryptoCost,
+    totalMV:stockMV+bankMV+cryptoMV, totalCost:stockCost+bankMV+cryptoCost};
+}
+
+// ── RENDER ───────────────────────────────────────────────────
+function renderAll() {
+  const t = calcTotals();
+  renderHero(t); renderAlloc(t);
+  renderStocks(t); renderBanks(t); renderCryptos(t);
+  renderChart();
+}
+
+function renderHero(t) {
+  document.getElementById('hero-total').textContent = 'NT$' + fmt(t.totalMV);
+  document.getElementById('hero-cost').textContent = 'NT$' + fmt(t.totalCost);
+  const pnl = t.totalMV - t.totalCost;
+  const pnlPct = t.totalCost>0 ? pnl/t.totalCost*100 : 0;
+  const pe = document.getElementById('hero-pnl');
+  pe.textContent = (pnl>=0?'+':'')+' NT$'+fmtK(Math.abs(pnl));
+  pe.className = 'hsv mono '+(pnl>=0?'g':'r');
+  const ge = document.getElementById('hero-growth');
+  const gPct = t.totalMV>0 ? pnl/t.totalMV*100 : 0;
+  ge.textContent = (gPct>=0?'+':'')+gPct.toFixed(1)+'%';
+  ge.className = 'hsv mono '+(gPct>=0?'g':'r');
+}
+
+function renderAlloc(t) {
+  const tot = t.totalMV||1;
+  document.getElementById('a-stock').textContent = 'NT$'+fmtK(t.stockMV);
+  document.getElementById('ap-stock').textContent = '股票 '+(t.stockMV/tot*100).toFixed(0)+'%';
+  document.getElementById('a-bank').textContent = 'NT$'+fmtK(t.bankMV);
+  document.getElementById('ap-bank').textContent = '銀行 '+(t.bankMV/tot*100).toFixed(0)+'%';
+  document.getElementById('a-crypto').textContent = 'NT$'+fmtK(t.cryptoMV);
+  document.getElementById('ap-crypto').textContent = '加密 '+(t.cryptoMV/tot*100).toFixed(0)+'%';
+}
+
+function renderStocks(t) {
+  const el = document.getElementById('stock-list');
+  const tot = t.totalMV||1;
+  if(!stocks.length){el.innerHTML='<div class="empty-state">尚未新增持倉<br>輸入台股代號即時查詢現價</div>';return;}
+  el.innerHTML = stocks.map((s,i)=>{
+    const cp = s.currentPrice||s.costPrice;
+    const mv = cp*s.shares;
+    const cost = s.costPrice*s.shares;
+    const pnl = mv-cost;
+    const pnlPct = cost>0?pnl/cost*100:0;
+    return `<div class="item">
+      <div class="item-left">
+        <div class="item-ticker ts">${s.ticker}</div>
+        <div class="item-name">${fmt(s.shares)} 股 · 成本 $${fmt(s.costPrice,1)}</div>
+      </div>
+      <div class="item-mid">
+        <div class="item-mv">NT$${fmtK(mv)}</div>
+        <div class="item-cost">成本 NT$${fmtK(cost)}</div>
+      </div>
+      <div class="item-right">
+        <div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(1)}%</div>
+        <div class="item-sub">現價 $${fmt(cp,1)}</div>
+      </div>
+      <button class="item-del" onclick="delStock('${s.id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function renderBanks(t) {
+  const el = document.getElementById('bank-list');
+  const tot = t.totalMV||1;
+  if(!banks.length){el.innerHTML='<div class="empty-state">尚未新增帳戶</div>';return;}
+  el.innerHTML = banks.map((b,i)=>{
+    const twdVal = b.balance*(FX[b.currency]||1);
+    const pct = twdVal/tot*100;
+    return `<div class="item">
+      <div class="item-left">
+        <div class="item-ticker tb">${b.name.length>7?b.name.slice(0,7)+'…':b.name}</div>
+        <div class="item-name">${b.currency}</div>
+      </div>
+      <div class="item-mid" style="cursor:pointer" onclick="editBank('${b.id}','${b.name}','${b.currency}',${b.balance})">
+        <div class="item-mv">NT$${fmtK(twdVal)}</div>
+        <div class="item-cost">${fmt(b.balance)} ${b.currency}</div>
+      </div>
+      <div class="item-right">
+        <div class="item-pnl" style="color:var(--muted)">${pct.toFixed(1)}%</div>
+        <div class="item-sub">點擊更新</div>
+      </div>
+      <button class="item-del" onclick="delBank('${b.id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function renderCryptos(t) {
+  const el = document.getElementById('crypto-list');
+  const tot = t.totalMV||1;
+  if(!cryptos.length){el.innerHTML='<div class="empty-state">尚未新增加密貨幣<br>輸入代號即時查詢現價</div>';return;}
+  el.innerHTML = cryptos.map((c,i)=>{
+    const cp = c.currentPrice||c.costUSD;
+    const mvTWD = cp*c.amount*FX.USD;
+    const costTWD = c.costUSD*c.amount*FX.USD;
+    const pnl = mvTWD-costTWD;
+    const pnlPct = costTWD>0?pnl/costTWD*100:0;
+    const amtStr = c.amount<0.001?c.amount.toFixed(6):c.amount<1?c.amount.toFixed(4):fmt(c.amount,2);
+    return `<div class="item">
+      <div class="item-left">
+        <div class="item-ticker tc">${c.sym}</div>
+        <div class="item-name">${amtStr} · 成本 $${fmt(c.costUSD,0)}</div>
+      </div>
+      <div class="item-mid">
+        <div class="item-mv">NT$${fmtK(mvTWD)}</div>
+        <div class="item-cost">成本 NT$${fmtK(costTWD)}</div>
+      </div>
+      <div class="item-right">
+        <div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(1)}%</div>
+        <div class="item-sub">$${cp>1?fmt(cp,2):cp.toFixed(4)}</div>
+      </div>
+      <button class="item-del" onclick="delCrypto('${c.id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+function renderChart() {
+  const h = history;
+  if(!h.length){
+    document.getElementById('chart-empty').style.display='flex';
+    document.getElementById('chart-wrap').style.display='none';
+    return;
+  }
+  document.getElementById('chart-empty').style.display='none';
+  document.getElementById('chart-wrap').style.display='block';
+  if(trendChart){trendChart.destroy();trendChart=null;}
+  trendChart = new Chart(document.getElementById('trend-chart'),{
+    type:'line',
+    data:{labels:h.map(d=>d.date),datasets:[
+      {label:'總市值',data:h.map(d=>Math.round(d.totalMV)),borderColor:'#4a9eff',backgroundColor:'rgba(74,158,255,.06)',borderWidth:2,pointRadius:2,fill:true,tension:0.4},
+      {label:'投入成本',data:h.map(d=>Math.round(d.totalCost)),borderColor:'#555',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
+      {label:'股票',data:h.map(d=>Math.round(d.stockMV)),borderColor:'#4a9eff',borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
+      {label:'銀行',data:h.map(d=>Math.round(d.bankMV)),borderColor:'#4caf82',borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
+      {label:'加密',data:h.map(d=>Math.round(d.cryptoMV)),borderColor:'#d4a847',borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(25,25,25,.95)',titleColor:'#888',bodyColor:'#f0ede8',
+        callbacks:{label:ctx=>' NT$'+ctx.raw.toLocaleString('zh-TW')}}},
+      scales:{
+        x:{ticks:{color:'#555',font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{color:'rgba(255,255,255,.03)'}},
+        y:{ticks:{color:'#555',font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:'rgba(255,255,255,.03)'}}
+      }}
+  });
+}
+
+// ── ADD ──────────────────────────────────────────────────────
+window.addStock = async () => {
+  const ticker = document.getElementById('s-ticker').value.trim().toUpperCase();
+  const shares = parseFloat(document.getElementById('s-shares').value);
+  const cost = parseFloat(document.getElementById('s-cost').value);
+  if(!ticker||isNaN(shares)||shares<=0||isNaN(cost)||cost<=0){showToast('請填寫代號、股數與成本');return;}
+  if(stocks.find(s=>s.ticker===ticker)){showToast('此股票已存在');return;}
+  const btn = document.getElementById('s-add-btn');
+  btn.disabled=true; btn.textContent='新增中...';
+  const currentPrice = priceCache[ticker] || await fetchStockPrice(ticker) || cost;
+  try {
+    const data = {ticker, shares, costPrice:cost, currentPrice, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
+    const ref = await addDoc(userCol('stocks'), data);
+    stocks.push({id:ref.id,...data});
+    renderAll();
+    ['s-ticker','s-shares','s-cost'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('s-price-badge').textContent='輸入代號查詢';
+    document.getElementById('s-price-badge').className='price-badge';
+    showToast('已新增 '+ticker);
+  } catch(e){showToast('新增失敗');}
+  btn.disabled=false; btn.textContent='新增持倉 +';
+};
+
+window.addBank = async () => {
+  const name = document.getElementById('b-name').value.trim();
+  const currency = document.getElementById('b-currency').value;
+  const balance = parseFloat(document.getElementById('b-balance').value);
+  if(!name||isNaN(balance)||balance<0){showToast('請填寫帳戶名稱與餘額');return;}
+  try {
+    const data = {name, currency, balance, createdAt:new Date().toISOString()};
+    const ref = await addDoc(userCol('banks'), data);
+    banks.push({id:ref.id,...data});
+    renderAll();
+    document.getElementById('b-name').value='';
+    document.getElementById('b-balance').value='';
+    showToast('已新增：'+name);
+  } catch(e){showToast('新增失敗');}
+};
+
+window.addCrypto = async () => {
+  const sym = document.getElementById('c-sym').value.trim().toUpperCase();
+  const amount = parseFloat(document.getElementById('c-amount').value);
+  const cost = parseFloat(document.getElementById('c-cost').value);
+  if(!sym||isNaN(amount)||amount<=0||isNaN(cost)||cost<=0){showToast('請填寫所有欄位');return;}
+  if(cryptos.find(c=>c.sym===sym)){showToast('此幣種已存在');return;}
+  const btn = document.getElementById('c-add-btn');
+  btn.disabled=true; btn.textContent='新增中...';
+  const currentPrice = priceCache['C_'+sym] || await fetchCryptoPrice(sym) || cost;
+  try {
+    const data = {sym, amount, costUSD:cost, currentPrice, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
+    const ref = await addDoc(userCol('cryptos'), data);
+    cryptos.push({id:ref.id,...data});
+    renderAll();
+    ['c-sym','c-amount','c-cost'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('c-price-badge').textContent='輸入代號查詢';
+    document.getElementById('c-price-badge').className='price-badge';
+    showToast('已新增 '+sym);
+  } catch(e){showToast('新增失敗');}
+  btn.disabled=false; btn.textContent='新增加密貨幣 +';
+};
+
+// ── EDIT BANK ────────────────────────────────────────────────
+window.editBank = async (id, name, currency, currentBalance) => {
+  const val = prompt(`更新「${name}」餘額（${currency}）：`, currentBalance);
+  if(val===null)return;
+  const n = parseFloat(val);
+  if(isNaN(n)||n<0){showToast('請輸入有效金額');return;}
+  try {
+    await updateDoc(userDoc('banks/'+id), {balance:n, updatedAt:new Date().toISOString()});
+    const idx = banks.findIndex(b=>b.id===id);
+    if(idx>=0) banks[idx].balance = n;
+    renderAll(); showToast('餘額已更新');
+  } catch(e){showToast('更新失敗');}
+};
+
+// ── DELETE ───────────────────────────────────────────────────
+window.delStock = async (id) => {
+  const s = stocks.find(x=>x.id===id);
+  if(!confirm('確定刪除 '+(s?.ticker||'')+'？'))return;
+  await deleteDoc(userDoc('stocks/'+id));
+  stocks = stocks.filter(x=>x.id!==id);
+  renderAll();
+};
+window.delBank = async (id) => {
+  const b = banks.find(x=>x.id===id);
+  if(!confirm('確定刪除 '+(b?.name||'')+'？'))return;
+  await deleteDoc(userDoc('banks/'+id));
+  banks = banks.filter(x=>x.id!==id);
+  renderAll();
+};
+window.delCrypto = async (id) => {
+  const c = cryptos.find(x=>x.id===id);
+  if(!confirm('確定刪除 '+(c?.sym||'')+'？'))return;
+  await deleteDoc(userDoc('cryptos/'+id));
+  cryptos = cryptos.filter(x=>x.id!==id);
+  renderAll();
+};
+
+// ── REFRESH & TAB ────────────────────────────────────────────
+window.refreshAll = async () => { await refreshPrices(false); await maybeAutoSnapshot(); };
+window.switchTab = (t) => {
+  ['stock','bank','crypto'].forEach((s,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',s===t);
+    document.getElementById('panel-'+s).classList.toggle('active',s===t);
+  });
+};
+
+// ── PWA ──────────────────────────────────────────────────────
+if(navigator.serviceWorker) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body>
+</html>
