@@ -152,7 +152,6 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .item{display:flex;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--border)}
 .item:last-child{border-bottom:none}
 .item-left{flex:1;min-width:0}
-.item-ticker{display:inline-block;border-radius:5px;padding:2px 7px;font-size:12px;font-weight:500;font-family:'DM Mono',monospace;margin-bottom:2px}
 .ts{background:rgba(26,111,212,.1);color:var(--blue)}
 .tb{background:rgba(29,158,106,.1);color:var(--green)}
 .tc{background:rgba(160,120,16,.1);color:var(--gold)}
@@ -175,16 +174,18 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .empty-state{text-align:center;padding:2rem 1rem;color:var(--hint);font-size:13px;line-height:1.8}
 
 /* ── STOCK TABLE ── */
-.stock-thead,.stock-row{display:grid;grid-template-columns:minmax(80px,1.6fr) 46px minmax(70px,1fr) minmax(80px,1fr) minmax(72px,1fr) 68px 52px;gap:0;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.stock-thead,.stock-row{display:grid;grid-template-columns:minmax(90px,2fr) 46px minmax(80px,1.1fr) minmax(80px,1.1fr) minmax(72px,1fr) 68px 52px;gap:0;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border)}
 .stock-thead{padding-bottom:6px}
 .stock-row:last-child{border-bottom:none}
 .stock-thead>div{font-size:10px;color:var(--muted);text-align:right;line-height:1.4}
 .stock-thead>div span{color:var(--hint)}
 .stock-thead .scol-name{text-align:left}
 .stock-thead .scol-act{text-align:right}
-.stock-cn-name{font-size:11px;font-weight:500;color:var(--text);margin-top:2px}
-.scol-name{text-align:left}
-.scol-shares,.scol-price,.scol-mv,.scol-pnl,.scol-ret{text-align:right}
+.scol-name{text-align:left;display:flex;flex-direction:column;gap:2px}
+.scol-name-top{display:flex;align-items:center;gap:5px;flex-wrap:nowrap}
+.item-ticker{display:inline-block;border-radius:5px;padding:2px 7px;font-size:12px;font-weight:500;font-family:'Noto Sans TC',sans-serif}
+.stock-cn-name{font-size:11px;font-weight:500;color:var(--text)}
+.scol-shares,.scol-mv,.scol-cost,.scol-pnl,.scol-ret{text-align:right}
 .scol-act{text-align:right;display:flex;justify-content:flex-end;gap:0}
 .scol-main{font-size:12px;font-weight:500;color:var(--text)}
 .scol-sub{font-size:10px;color:var(--hint);margin-top:1px}
@@ -880,12 +881,12 @@ function renderStocks(t){
     if(ae&&!be)return -1;if(!ae&&be)return 1;return 0;
   });
 
-  // 表頭
+  // 表頭：第3欄=市值(現價)，第4欄=總成本(單位成本)
   const header=`<div class="stock-thead">
     <div class="scol-name">股票</div>
     <div class="scol-shares">股數</div>
-    <div class="scol-price">現價<br><span>單位成本</span></div>
-    <div class="scol-mv">市值<br><span>總成本</span></div>
+    <div class="scol-mv">市值<br><span>現價</span></div>
+    <div class="scol-cost">總成本<br><span>單位成本</span></div>
     <div class="scol-pnl">損益</div>
     <div class="scol-ret">報酬率</div>
     <div class="scol-act"></div>
@@ -906,17 +907,19 @@ function renderStocks(t){
     const pnlSign=pnl>=0?'+':'';
     return `<div class="stock-row">
       <div class="scol-name">
-        <div class="item-ticker ${badgeClass}">${s.ticker}</div>
-        ${displayName?`<div class="stock-cn-name">${displayName}</div>`:''}
+        <div class="scol-name-top">
+          <div class="item-ticker ${badgeClass}">${s.ticker}</div>
+          ${displayName?`<span class="stock-cn-name">${displayName}</span>`:''}
+        </div>
       </div>
       <div class="scol-shares">${fmt(s.shares)}</div>
-      <div class="scol-price">
-        <div class="scol-main">${priceOk?'$'+fmt(cp,2):'<span class="pending">待更新</span>'}</div>
-        <div class="scol-sub">$${fmt(s.costPrice,2)}</div>
-      </div>
       <div class="scol-mv">
         <div class="scol-main">NT$${fmt(mv)}</div>
-        <div class="scol-sub">NT$${fmt(cost)}</div>
+        <div class="scol-sub">${priceOk?'NT$'+fmt(cp,2):'<span class="pending">待更新</span>'}</div>
+      </div>
+      <div class="scol-cost">
+        <div class="scol-main">NT$${fmt(cost)}</div>
+        <div class="scol-sub">NT$${fmt(s.costPrice,2)}</div>
       </div>
       <div class="scol-pnl ${pnlColor}">${pnlSign}NT$${fmt(Math.abs(pnl))}</div>
       <div class="scol-ret ${pnlColor}">${pnlSign}${pnlPct.toFixed(2)}%</div>
