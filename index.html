@@ -95,6 +95,22 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .alloc-val{font-size:12px;font-weight:500;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alloc-pct{font-size:10px;color:var(--muted);margin-top:1px}
 
+/* ── DONUT ── */
+.donut-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px;box-shadow:var(--shadow)}
+.donut-hdr{font-size:13px;font-weight:500;margin-bottom:12px}
+.donut-body{display:flex;align-items:center;gap:16px}
+.donut-wrap{position:relative;width:120px;height:120px;flex-shrink:0}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-center-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.donut-center-val{font-size:13px;font-weight:500;font-family:'DM Mono',monospace;margin-top:1px}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:8px}
+.donut-leg{display:flex;align-items:center;gap:8px}
+.donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.donut-leg-info{flex:1}
+.donut-leg-name{font-size:12px;color:var(--text);font-weight:500}
+.donut-leg-val{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace}
+.donut-leg-pct{font-size:12px;font-family:'DM Mono',monospace;color:var(--muted);margin-left:auto}
+
 /* ── CHART ── */
 .chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px;box-shadow:var(--shadow)}
 .chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -235,11 +251,19 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
       <div class="hero-update" id="hero-update">—</div>
     </div>
 
-    <!-- ALLOC: 銀行、股票、加密 -->
-    <div class="alloc-row">
-      <div class="alloc-pill"><div class="alloc-emoji">🏦</div><div class="alloc-val mono" id="a-bank">—</div><div class="alloc-pct" id="ap-bank">銀行</div></div>
-      <div class="alloc-pill"><div class="alloc-emoji">📈</div><div class="alloc-val mono" id="a-stock">—</div><div class="alloc-pct" id="ap-stock">股票</div></div>
-      <div class="alloc-pill"><div class="alloc-emoji">₿</div><div class="alloc-val mono" id="a-crypto">—</div><div class="alloc-pct" id="ap-crypto">加密</div></div>
+    <!-- DONUT CHART -->
+    <div class="donut-card">
+      <div class="donut-hdr">資產配置</div>
+      <div class="donut-body">
+        <div class="donut-wrap">
+          <canvas id="donut-chart" width="120" height="120" role="img" aria-label="資產配置圓餅圖"></canvas>
+          <div class="donut-center">
+            <div class="donut-center-label">總資產</div>
+            <div class="donut-center-val" id="donut-total">—</div>
+          </div>
+        </div>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
     </div>
 
     <div class="chart-card">
@@ -407,7 +431,7 @@ function applyTheme(){
   document.getElementById('theme-btn').textContent = isDark?'🌙':'☀️';
   document.getElementById('theme-color-meta').content = isDark?'#0f0f0f':'#f7f6f2';
 }
-window.toggleTheme=()=>{ isDark=!isDark; localStorage.setItem('theme',isDark?'dark':'light'); applyTheme(); if(trendChart){trendChart.destroy();trendChart=null;} renderChart(); };
+window.toggleTheme=()=>{ isDark=!isDark; localStorage.setItem('theme',isDark?'dark':'light'); applyTheme(); if(trendChart){trendChart.destroy();trendChart=null;} if(donutChart){donutChart.destroy();donutChart=null;} renderChart(); const t=calcTotals(); renderAlloc(t); };
 applyTheme();
 
 // ── UTILS ────────────────────────────────────────────────────
@@ -493,8 +517,9 @@ async function fetchStockPrice(ticker){
     const res=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`));
     const w=await res.json();
     const json=JSON.parse(w.contents);
-    const p=json?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    return p?parseFloat(p.toFixed(2)):null;
+    const meta=json?.chart?.result?.[0]?.meta;
+    const p=meta?.regularMarketPrice;
+    return p?{price:parseFloat(p.toFixed(2)),name:meta?.longName||meta?.shortName||''}:null;
   }catch(e){return null;}
 }
 async function fetchCryptoPrice(sym){
@@ -508,7 +533,16 @@ async function fetchCryptoPrice(sym){
 async function refreshPrices(silent=false){
   if(!silent)showLoad('更新報價中...');
   const updates=[];
-  for(const s of stocks){const p=await fetchStockPrice(s.ticker);if(p){s.currentPrice=p;updates.push(updateDoc(userDoc('stocks/'+s.id),{currentPrice:p,updatedAt:new Date().toISOString()}));}}
+  for(const s of stocks){
+    const result=await fetchStockPrice(s.ticker);
+    if(result){
+      s.currentPrice=result.price;
+      if(result.name&&!s.name){s.name=result.name;}
+      const upd={currentPrice:result.price,updatedAt:new Date().toISOString()};
+      if(result.name&&!s.name)upd.name=result.name;
+      updates.push(updateDoc(userDoc('stocks/'+s.id),upd));
+    }
+  }
   if(cryptos.length){
     const ids=cryptos.map(c=>CRYPTO_ID[c.sym]||c.sym.toLowerCase()).join(',');
     try{
@@ -526,7 +560,11 @@ window.onTickerInput=(el)=>{
   clearTimeout(tickerDebounce);const ticker=el.value.trim().toUpperCase();const badge=document.getElementById('s-price-badge');
   if(!ticker||ticker.length<2){badge.textContent='輸入代號查詢';badge.className='price-badge';return;}
   badge.textContent='查詢中…';badge.className='price-badge';
-  tickerDebounce=setTimeout(async()=>{const p=await fetchStockPrice(ticker);if(p){priceCache[ticker]=p;badge.textContent='NT$'+fmt(p,1);badge.className='price-badge loaded';}else{badge.textContent='找不到代號';badge.className='price-badge';}},800);
+  tickerDebounce=setTimeout(async()=>{
+    const result=await fetchStockPrice(ticker);
+    if(result){priceCache[ticker]={price:result.price,name:result.name};badge.textContent='NT$'+fmt(result.price,1)+(result.name?'  '+result.name:'');badge.className='price-badge loaded';}
+    else{badge.textContent='找不到代號';badge.className='price-badge';}
+  },800);
 };
 window.onCryptoInput=(el)=>{
   clearTimeout(cryptoDebounce);const sym=el.value.trim().toUpperCase();const badge=document.getElementById('c-price-badge');
@@ -563,11 +601,53 @@ function renderHero(t){
   const pe=document.getElementById('hero-pnl');pe.textContent=(pnl>=0?'+':'')+' NT$'+fmtK(Math.abs(pnl));pe.className='hsv mono '+(pnl>=0?'g':'r');
   const gPct=t.totalMV>0?pnl/t.totalMV*100:0;const ge=document.getElementById('hero-growth');ge.textContent=(gPct>=0?'+':'')+gPct.toFixed(1)+'%';ge.className='hsv mono '+(gPct>=0?'g':'r');
 }
+let donutChart=null;
 function renderAlloc(t){
   const tot=t.totalMV||1;
-  document.getElementById('a-bank').textContent='NT$'+fmtK(t.bankMV);document.getElementById('ap-bank').textContent='銀行 '+(t.bankMV/tot*100).toFixed(0)+'%';
-  document.getElementById('a-stock').textContent='NT$'+fmtK(t.stockMV);document.getElementById('ap-stock').textContent='股票 '+(t.stockMV/tot*100).toFixed(0)+'%';
-  document.getElementById('a-crypto').textContent='NT$'+fmtK(t.cryptoMV);document.getElementById('ap-crypto').textContent='加密 '+(t.cryptoMV/tot*100).toFixed(0)+'%';
+  const dark=document.body.classList.contains('dark');
+  const items=[
+    {label:'🏦 銀行',val:t.bankMV,color:dark?'#4caf82':'#1d9e6a'},
+    {label:'📈 股票',val:t.stockMV,color:dark?'#4a9eff':'#1a6fd4'},
+    {label:'₿ 加密貨幣',val:t.cryptoMV,color:dark?'#d4a847':'#a07810'},
+  ].filter(i=>i.val>0);
+  const allZero=items.length===0;
+
+  // Center label
+  document.getElementById('donut-total').textContent=allZero?'—':'NT$'+fmtK(tot);
+
+  // Legend
+  const leg=document.getElementById('donut-legend');
+  if(allZero){leg.innerHTML='<div style="font-size:12px;color:var(--hint)">新增資產後顯示</div>';return;}
+  leg.innerHTML=items.map(i=>{
+    const pct=(i.val/tot*100).toFixed(1);
+    return `<div class="donut-leg">
+      <div class="donut-dot" style="background:${i.color}"></div>
+      <div class="donut-leg-info">
+        <div class="donut-leg-name">${i.label}</div>
+        <div class="donut-leg-val">NT$${fmtK(i.val)}</div>
+      </div>
+      <div class="donut-leg-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // Chart
+  if(donutChart){donutChart.destroy();donutChart=null;}
+  donutChart=new Chart(document.getElementById('donut-chart'),{
+    type:'doughnut',
+    data:{
+      labels:items.map(i=>i.label),
+      datasets:[{data:items.map(i=>Math.round(i.val)),backgroundColor:items.map(i=>i.color),borderWidth:0,hoverOffset:4}]
+    },
+    options:{
+      responsive:false,cutout:'68%',
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:dark?'rgba(25,25,25,.95)':'rgba(255,255,255,.95)',
+        titleColor:dark?'#888':'#777',bodyColor:dark?'#f0ede8':'#1a1a18',
+        borderColor:dark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)',borderWidth:0.5,
+        callbacks:{label:ctx=>{const pct=(ctx.raw/tot*100).toFixed(1);return ` NT$${ctx.raw.toLocaleString('zh-TW')} (${pct}%)`;}}
+      }}
+    }
+  });
 }
 function renderBanks(t){
   const el=document.getElementById('bank-list');const tot=t.totalMV||1;
@@ -590,8 +670,13 @@ function renderStocks(t){
   el.innerHTML=stocks.map((s)=>{
     const cp=s.currentPrice||s.costPrice;const mv=cp*s.shares;const cost=s.costPrice*s.shares;
     const pnl=mv-cost;const pnlPct=cost>0?pnl/cost*100:0;
+    const nameStr=s.name?`<div style="font-size:10px;color:var(--muted);margin-top:1px">${s.name}</div>`:'';
     return `<div class="item">
-      <div class="item-left"><div class="item-ticker ts">${s.ticker}</div><div class="item-name">${fmt(s.shares)} 股 · 成本 $${fmt(s.costPrice,1)}</div></div>
+      <div class="item-left">
+        <div class="item-ticker ts">${s.ticker}</div>
+        ${nameStr}
+        <div class="item-name">${fmt(s.shares)} 股 · 成本 $${fmt(s.costPrice,1)}</div>
+      </div>
       <div class="item-mid"><div class="item-mv">NT$${fmtK(mv)}</div><div class="item-cost">成本 NT$${fmtK(cost)}</div></div>
       <div class="item-right"><div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(1)}%</div><div class="item-sub">$${fmt(cp,1)}</div></div>
       <div class="item-actions">
@@ -651,13 +736,16 @@ window.addStock=async()=>{
   if(!ticker||isNaN(shares)||shares<=0||isNaN(cost)||cost<=0){showToast('請填寫代號、股數與成本');return;}
   if(stocks.find(s=>s.ticker===ticker)){showToast('此股票已存在，請點 ⊕ 買入');return;}
   const btn=document.getElementById('s-add-btn');btn.disabled=true;btn.textContent='新增中...';
-  const cp=priceCache[ticker]||await fetchStockPrice(ticker)||cost;
+  const cached=priceCache[ticker];
+  let cp=cost, stockName='';
+  if(cached&&cached.price){cp=cached.price;stockName=cached.name||'';}
+  else{const result=await fetchStockPrice(ticker);if(result){cp=result.price;stockName=result.name||'';}}
   try{
-    const data={ticker,shares,costPrice:cost,currentPrice:cp,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    const data={ticker,name:stockName,shares,costPrice:cost,currentPrice:cp,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
     const ref=await addDoc(userCol('stocks'),data);stocks.push({id:ref.id,...data});
     renderAll();['s-ticker','s-shares','s-cost'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('s-price-badge').textContent='輸入代號查詢';document.getElementById('s-price-badge').className='price-badge';
-    showToast('已新增 '+ticker);
+    showToast('已新增 '+ticker+(stockName?' '+stockName:''));
   }catch(e){showToast('新增失敗');}
   btn.disabled=false;btn.textContent='新增持倉 +';
 };
