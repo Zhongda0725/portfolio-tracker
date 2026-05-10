@@ -186,6 +186,15 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 
 /* ── BOTTOM PAD ── */
 .bottom-pad{height:calc(var(--safe-bot) + 24px)}
+
+/* ── GOOGLE BTN ── */
+.auth-divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--hint);font-size:11px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+.google-btn{width:100%;padding:11px;background:transparent;color:var(--text);
+  border:0.5px solid var(--border2);border-radius:var(--rs);font-size:14px;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s}
+.google-btn:active{background:var(--surface2)}
 </style>
 </head>
 <body>
@@ -213,6 +222,11 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
       <input id="auth-confirm" type="password" placeholder="再輸入一次" autocomplete="new-password">
     </div>
     <button class="primary-btn" id="auth-btn" onclick="handleAuth()">登入</button>
+    <div class="auth-divider">或</div>
+    <button class="google-btn" onclick="handleGoogleLogin()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.5 30.2 0 24 0 14.7 0 6.7 5.5 2.8 13.5l7.8 6C12.4 13 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.6 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 6.9-10 6.9-17z"/><path fill="#FBBC05" d="M10.6 28.5c-.5-1.5-.8-3-.8-4.5s.3-3 .8-4.5l-7.8-6C1 16.5 0 20.1 0 24s1 7.5 2.8 10.5l7.8-6z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.2 0-11.5-4.2-13.4-9.9l-7.8 6C6.7 42.5 14.7 48 24 48z"/></svg>
+      使用 Google 帳號繼續
+    </button>
     <div class="auth-err" id="auth-err"></div>
   </div>
 </div>
@@ -358,7 +372,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -375,6 +389,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 
 // ── CONSTANTS ────────────────────────────────────────────────
 const FX = {TWD:1, USD:32.5, JPY:0.22, EUR:35.5};
@@ -436,9 +451,25 @@ window.handleAuth = async () => {
   }
 };
 
+window.handleGoogleLogin = async () => {
+  showLoad('Google 登入中...');
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch(e) {
+    hideLoad();
+    const msgs = {
+      'auth/popup-closed-by-user':'登入視窗被關閉，請重試',
+      'auth/cancelled-popup-request':'請重試',
+      'auth/popup-blocked':'請允許彈出視窗後重試',
+    };
+    document.getElementById('auth-err').textContent = msgs[e.code]||('登入失敗：'+e.message);
+  }
+};
+
 window.handleLogout = async () => {
   if(!confirm('確定要登出？'))return;
   await signOut(auth);
+
 };
 
 // ── AUTH STATE ───────────────────────────────────────────────
