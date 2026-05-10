@@ -510,6 +510,27 @@ async function loadUserData(){
   }catch(e){console.error(e);showToast('載入失敗');hideLoad();}
 }
 
+// ── 台股中文名稱對照表 ───────────────────────────────────────
+const TW_NAMES={
+  '2330':'台積電','2317':'鴻海','2454':'聯發科','0050':'元大台灣50',
+  '0056':'元大高股息','2412':'中華電','2882':'國泰金','2881':'富邦金',
+  '2886':'兆豐金','2891':'中信金','2884':'玉山金','2885':'元大金',
+  '2892':'第一金','2880':'華南金','2834':'臺企銀','5880':'合庫金',
+  '2303':'聯電','2308':'台達電','3008':'大立光','2357':'華碩',
+  '2382':'廣達','2395':'研華','2379':'瑞昱','2376':'技嘉',
+  '2345':'智邦','3034':'聯詠','6770':'力積電','2337':'旺宏',
+  '2408':'南亞科','3711':'日月光投控','2327':'國巨','2301':'光寶科',
+  '2474':'可成','1301':'台塑','1303':'南亞','1326':'台化',
+  '6505':'台塑化','1402':'遠東新','2002':'中鋼','1101':'台泥',
+  '1216':'統一','2912':'統一超','2801':'彰銀','2809':'京城銀',
+  '5876':'上海商銀','2867':'三商壽','2823':'中壽','2832':'台產',
+  '3045':'台灣大','4904':'遠傳','2498':'宏達電','2344':'華邦電',
+  '3037':'欣興','2376':'技嘉','8046':'南電','4958':'臻鼎-KY',
+  '2409':'友達','3481':'群創','2352':'佳世達','2353':'宏碁',
+  '2356':'英業達','6669':'緯穎','2388':'威盛','3533':'嘉澤',
+  '6415':'矽力-KY','4966':'譜瑞-KY','3考':'嘉澤','2377':'微星',
+};
+
 // ── PRICES ───────────────────────────────────────────────────
 async function fetchStockPrice(ticker){
   const sym=/^\d/.test(ticker)?ticker+'.TW':ticker;
@@ -519,7 +540,10 @@ async function fetchStockPrice(ticker){
     const json=JSON.parse(w.contents);
     const meta=json?.chart?.result?.[0]?.meta;
     const p=meta?.regularMarketPrice;
-    return p?{price:parseFloat(p.toFixed(2)),name:meta?.longName||meta?.shortName||''}:null;
+    // 優先用對照表中文名，其次用 Yahoo 回傳名稱
+    const chName=TW_NAMES[ticker]||'';
+    const fallbackName=meta?.longName||meta?.shortName||'';
+    return p?{price:parseFloat(p.toFixed(2)),name:chName||fallbackName}:null;
   }catch(e){return null;}
 }
 async function fetchCryptoPrice(sym){
@@ -562,8 +586,12 @@ window.onTickerInput=(el)=>{
   badge.textContent='查詢中…';badge.className='price-badge';
   tickerDebounce=setTimeout(async()=>{
     const result=await fetchStockPrice(ticker);
-    if(result){priceCache[ticker]={price:result.price,name:result.name};badge.textContent='NT$'+fmt(result.price,1)+(result.name?'  '+result.name:'');badge.className='price-badge loaded';}
-    else{badge.textContent='找不到代號';badge.className='price-badge';}
+    if(result){
+      priceCache[ticker]={price:result.price,name:result.name};
+      const displayName=TW_NAMES[ticker]||result.name||'';
+      badge.textContent='NT$'+fmt(result.price,1)+(displayName?'  '+displayName:'');
+      badge.className='price-badge loaded';
+    }else{badge.textContent='找不到代號';badge.className='price-badge';}
   },800);
 };
 window.onCryptoInput=(el)=>{
@@ -670,11 +698,14 @@ function renderStocks(t){
   el.innerHTML=stocks.map((s)=>{
     const cp=s.currentPrice||s.costPrice;const mv=cp*s.shares;const cost=s.costPrice*s.shares;
     const pnl=mv-cost;const pnlPct=cost>0?pnl/cost*100:0;
-    const nameStr=s.name?`<div style="font-size:10px;color:var(--muted);margin-top:1px">${s.name}</div>`:'';
+    // 用對照表優先，其次用已存的名稱
+    const displayName=TW_NAMES[s.ticker]||s.name||'';
     return `<div class="item">
       <div class="item-left">
-        <div class="item-ticker ts">${s.ticker}</div>
-        ${nameStr}
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <div class="item-ticker ts">${s.ticker}</div>
+          ${displayName?`<span style="font-size:12px;font-weight:500;color:var(--text)">${displayName}</span>`:''}
+        </div>
         <div class="item-name">${fmt(s.shares)} 股 · 成本 $${fmt(s.costPrice,1)}</div>
       </div>
       <div class="item-mid"><div class="item-mv">NT$${fmtK(mv)}</div><div class="item-cost">成本 NT$${fmtK(cost)}</div></div>
