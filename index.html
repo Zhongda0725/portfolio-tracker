@@ -779,10 +779,34 @@ window.onCryptoInput=(el)=>{
 // ── SNAPSHOT ────────────────────────────────────────────────
 async function maybeAutoSnapshot(){
   const today=new Date().toLocaleDateString('zh-TW');
-  if(history.find(h=>h.date===today))return;
-  const t=calcTotals();if(t.totalMV===0)return;
-  const snap={date:today,totalMV:t.totalMV,totalCost:t.totalCost,stockMV:t.stockMV,bankMV:t.bankMV,cryptoMV:t.cryptoMV,createdAt:new Date().toISOString()};
-  try{const ref=await addDoc(userCol('history'),snap);history.push({id:ref.id,...snap});if(history.length>90){const old=history.shift();await deleteDoc(userDoc('history/'+old.id));}}catch(e){}
+  const t=calcTotals();
+  if(t.totalMV===0) return;
+
+  const snap={
+    date:today,
+    totalMV:t.totalMV, totalCost:t.totalCost,
+    stockMV:t.stockMV, bankMV:t.bankMV, cryptoMV:t.cryptoMV,
+    updatedAt:new Date().toISOString()
+  };
+
+  const existing=history.find(h=>h.date===today);
+  try{
+    if(existing){
+      // 今天已有快照 → 覆蓋（確保用最新報價）
+      await updateDoc(userDoc('history/'+existing.id), snap);
+      Object.assign(existing, snap);
+    } else {
+      // 今天還沒快照 → 新增
+      snap.createdAt=new Date().toISOString();
+      const ref=await addDoc(userCol('history'), snap);
+      history.push({id:ref.id,...snap});
+      // 超過 90 天刪最舊的
+      if(history.length>90){
+        const old=history.shift();
+        await deleteDoc(userDoc('history/'+old.id));
+      }
+    }
+  }catch(e){ console.error('快照失敗：',e); }
 }
 
 // ── CALC ────────────────────────────────────────────────────
@@ -904,7 +928,7 @@ function renderStocks(t){
     const badgeClass=etf?'te':'ts';
     const priceOk=s.currentPrice&&Math.abs(s.currentPrice-s.costPrice)>0.001;
     const pnlColor=pnl>=0?'g':'r';
-    const pnlSign=pnl>=0?'+':'';
+    const pnlSign=pnl>0?'+':pnl<0?'-':'';
     return `<div class="stock-row">
       <div class="scol-name">
         <div class="scol-name-top">
@@ -922,7 +946,7 @@ function renderStocks(t){
         <div class="scol-sub">NT$${fmt(s.costPrice,2)}</div>
       </div>
       <div class="scol-pnl ${pnlColor}">${pnlSign}NT$${fmt(Math.abs(pnl))}</div>
-      <div class="scol-ret ${pnlColor}">${pnlSign}${pnlPct.toFixed(2)}%</div>
+      <div class="scol-ret ${pnlColor}">${pnlSign}${Math.abs(pnlPct).toFixed(2)}%</div>
       <div class="scol-act">
         <button class="item-act-btn" onclick="openModal('stock','${s.id}')">⊕</button>
         <button class="item-del" onclick="delStock('${s.id}')">×</button>
@@ -963,15 +987,35 @@ function renderChart(){
   if(trendChart){trendChart.destroy();trendChart=null;}
   trendChart=new Chart(document.getElementById('trend-chart'),{type:'line',
     data:{labels:h.map(d=>d.date),datasets:[
-      {label:'總市值',data:h.map(d=>Math.round(d.totalMV)),borderColor:blueC,backgroundColor:dark?'rgba(74,158,255,.06)':'rgba(26,111,212,.05)',borderWidth:2,pointRadius:2,fill:true,tension:0.4},
-      {label:'投入成本',data:h.map(d=>Math.round(d.totalCost)),borderColor:tickC,borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
-      {label:'銀行',data:h.map(d=>Math.round(d.bankMV)),borderColor:greenC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
-      {label:'股票',data:h.map(d=>Math.round(d.stockMV)),borderColor:blueC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
-      {label:'加密',data:h.map(d=>Math.round(d.cryptoMV)),borderColor:goldC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
+      {label:'總市值',data:h.map(d=>Math.round(d.totalMV)),borderColor:blueC,backgroundColor:dark?'rgba(74,158,255,.06)':'rgba(26,111,212,.05)',borderWidth:2,pointRadius:2,fill:true,tension:0.4,spanGaps:true},
+      {label:'投入成本',data:h.map(d=>Math.round(d.totalCost)),borderColor:tickC,borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,tension:0.4,spanGaps:true},
+      {label:'銀行',data:h.map(d=>Math.round(d.bankMV)),borderColor:greenC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4],spanGaps:true},
+      {label:'股票',data:h.map(d=>Math.round(d.stockMV)),borderColor:blueC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4],spanGaps:true},
+      {label:'加密',data:h.map(d=>Math.round(d.cryptoMV)),borderColor:goldC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4],spanGaps:true},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'rgba(25,25,25,.95)':'rgba(255,255,255,.95)',titleColor:tickC,bodyColor:dark?'#f0ede8':'#1a1a18',borderColor:dark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)',borderWidth:0.5,callbacks:{label:ctx=>' NT$'+ctx.raw.toLocaleString('zh-TW')}}},
-      scales:{x:{ticks:{color:tickC,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{color:gridC}},y:{ticks:{color:tickC,font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:gridC}}}}
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:dark?'rgba(25,25,25,.95)':'rgba(255,255,255,.95)',
+          titleColor:tickC,
+          bodyColor:dark?'#f0ede8':'#1a1a18',
+          borderColor:dark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)',
+          borderWidth:0.5,
+          callbacks:{
+            label:ctx=>' NT$'+ctx.raw.toLocaleString('zh-TW')
+          }
+        }
+      },
+      scales:{
+        x:{ticks:{color:tickC,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{color:gridC}},
+        y:{ticks:{color:tickC,font:{size:9},callback:v=>{
+          if(v>=1000000) return 'NT$'+(v/1000000).toFixed(1)+'M';
+          if(v>=1000) return 'NT$'+(v/1000).toFixed(0)+'K';
+          return 'NT$'+v;
+        }},grid:{color:gridC}}
+      }
+    }
   });
 }
 
