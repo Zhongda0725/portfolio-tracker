@@ -174,6 +174,24 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .g{color:var(--green)}.r{color:var(--red)}
 .empty-state{text-align:center;padding:2rem 1rem;color:var(--hint);font-size:13px;line-height:1.8}
 
+/* ── STOCK TABLE ── */
+.stock-thead,.stock-row{display:grid;grid-template-columns:minmax(80px,1.6fr) 46px minmax(70px,1fr) minmax(80px,1fr) minmax(72px,1fr) 68px 52px;gap:0;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.stock-thead{padding-bottom:6px}
+.stock-row:last-child{border-bottom:none}
+.stock-thead>div{font-size:10px;color:var(--muted);text-align:right;line-height:1.4}
+.stock-thead>div span{color:var(--hint)}
+.stock-thead .scol-name{text-align:left}
+.stock-thead .scol-act{text-align:right}
+.stock-cn-name{font-size:11px;font-weight:500;color:var(--text);margin-top:2px}
+.scol-name{text-align:left}
+.scol-shares,.scol-price,.scol-mv,.scol-pnl,.scol-ret{text-align:right}
+.scol-act{text-align:right;display:flex;justify-content:flex-end;gap:0}
+.scol-main{font-size:12px;font-weight:500;color:var(--text)}
+.scol-sub{font-size:10px;color:var(--hint);margin-top:1px}
+.scol-shares{font-size:12px;color:var(--text)}
+.scol-pnl,.scol-ret{font-size:12px;font-weight:500}
+.pending{color:var(--hint);font-size:10px;font-weight:400}
+
 /* ── MODAL ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .modal-bg.show{display:flex}
@@ -634,11 +652,11 @@ async function fetchTWSEBatch(tickers){
   const proxy='https://api.allorigins.win/get?url=';
   const results={};
 
-  // 同時組 tse 和 otc 清單（因為不確定哪個市場）
+  // tse 和 otc 同時查，取有資料的那個
   const tseList=tickers.map(t=>`tse_${t}.tw`).join('|');
   const otcList=tickers.map(t=>`otc_${t}.tw`).join('|');
   const combined=tseList+'|'+otcList;
-  const url=`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${combined}&json=1&delay=0`;
+  const url=`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${encodeURIComponent(combined)}&json=1&delay=0`;
 
   try{
     const res=await fetch(proxy+encodeURIComponent(url));
@@ -646,17 +664,24 @@ async function fetchTWSEBatch(tickers){
     const data=JSON.parse(w.contents);
     if(data?.msgArray){
       data.msgArray.forEach(item=>{
-        const code=item.c; // 股票代號
-        const name=item.n; // 中文名稱
-        const price=parseFloat(item.z); // 成交價（盤中）
-        const closePrice=parseFloat(item.y); // 昨收價（盤後用）
+        const code=item.c;
         if(!code) return;
-        // z 為 '-' 表示未開盤或已收盤，改用昨收
-        const finalPrice=(!isNaN(price)&&price>0)?price:(!isNaN(closePrice)&&closePrice>0?closePrice:null);
-        if(finalPrice){
-          results[code]={price:finalPrice, name:name||''};
-          // 同步更新名稱快取
+        // n = 公司簡稱（中文），nf = 全名
+        const name=item.n||'';
+        // z = 當盤成交價，盤後或休市時為 '-' → 改用昨收 y
+        const zVal=item.z;
+        const yVal=item.y;
+        const price=(zVal&&zVal!=='-'&&zVal!=='--')?parseFloat(zVal):
+                    (yVal&&yVal!=='-'&&yVal!=='--')?parseFloat(yVal):null;
+        if(price&&price>0){
+          results[code]={price:parseFloat(price.toFixed(2)), name};
+          // 中文名稱同步更新快取
           if(name&&/[\u4e00-\u9fa5]/.test(name)) TW_NAMES[code]=name;
+        } else if(name&&/[\u4e00-\u9fa5]/.test(name)){
+          // 即使沒抓到價格，也更新名稱快取
+          TW_NAMES[code]=name;
+          if(results[code]) results[code].name=name;
+          else results[code]={price:null, name};
         }
       });
     }
@@ -697,14 +722,13 @@ async function refreshPrices(silent=false){
     const batch=await fetchTWSEBatch(tickers);
     stocks.forEach(s=>{
       const r=batch[s.ticker];
-      if(r){
-        s.currentPrice=r.price;
-        const chName=TW_NAMES[s.ticker]||r.name||'';
-        if(chName&&/[\u4e00-\u9fa5]/.test(chName)) s.name=chName;
-        const upd={currentPrice:r.price,updatedAt:new Date().toISOString()};
-        if(s.name) upd.name=s.name;
-        updates.push(updateDoc(userDoc('stocks/'+s.id),upd));
-      }
+      if(!r) return;
+      const chName=TW_NAMES[s.ticker]||r.name||'';
+      const hasChName=chName&&/[\u4e00-\u9fa5]/.test(chName);
+      const upd={updatedAt:new Date().toISOString()};
+      if(r.price){s.currentPrice=r.price;upd.currentPrice=r.price;}
+      if(hasChName&&(!s.name||!/[\u4e00-\u9fa5]/.test(s.name))){s.name=chName;upd.name=chName;}
+      updates.push(updateDoc(userDoc('stocks/'+s.id),upd));
     });
   }
 
@@ -772,11 +796,16 @@ function calcTotals(){
 function renderAll(){const t=calcTotals();renderHero(t);renderAlloc(t);renderBanks(t);renderStocks(t);renderCryptos(t);renderChart();}
 
 function renderHero(t){
-  document.getElementById('hero-total').textContent='NT$'+fmt(t.totalMV);
-  document.getElementById('hero-cost').textContent='NT$'+fmt(t.totalCost);
+  document.getElementById('hero-total').textContent='NT$'+fmt(Math.round(t.totalMV));
+  document.getElementById('hero-cost').textContent='NT$'+fmt(Math.round(t.totalCost));
   const pnl=t.totalMV-t.totalCost;const pnlPct=t.totalCost>0?pnl/t.totalCost*100:0;
-  const pe=document.getElementById('hero-pnl');pe.textContent=(pnl>=0?'+':'')+' NT$'+fmtK(Math.abs(pnl));pe.className='hsv mono '+(pnl>=0?'g':'r');
-  const gPct=t.totalMV>0?pnl/t.totalMV*100:0;const ge=document.getElementById('hero-growth');ge.textContent=(gPct>=0?'+':'')+gPct.toFixed(1)+'%';ge.className='hsv mono '+(gPct>=0?'g':'r');
+  const pe=document.getElementById('hero-pnl');
+  pe.textContent=(pnl>=0?'+':'')+' NT$'+fmt(Math.round(Math.abs(pnl)));
+  pe.className='hsv '+(pnl>=0?'g':'r');
+  const gPct=t.totalMV>0?pnl/t.totalMV*100:0;
+  const ge=document.getElementById('hero-growth');
+  ge.textContent=(gPct>=0?'+':'')+gPct.toFixed(2)+'%';
+  ge.className='hsv '+(gPct>=0?'g':'r');
 }
 let donutChart=null;
 function renderAlloc(t){
@@ -790,18 +819,18 @@ function renderAlloc(t){
   const allZero=items.length===0;
 
   // Center label
-  document.getElementById('donut-total').textContent=allZero?'—':'NT$'+fmtK(tot);
+  document.getElementById('donut-total').textContent=allZero?'—':'NT$'+fmt(Math.round(tot));
 
   // Legend
   const leg=document.getElementById('donut-legend');
   if(allZero){leg.innerHTML='<div style="font-size:12px;color:var(--hint)">新增資產後顯示</div>';return;}
   leg.innerHTML=items.map(i=>{
-    const pct=(i.val/tot*100).toFixed(1);
+    const pct=(i.val/tot*100).toFixed(2);
     return `<div class="donut-leg">
       <div class="donut-dot" style="background:${i.color}"></div>
       <div class="donut-leg-info">
         <div class="donut-leg-name">${i.label}</div>
-        <div class="donut-leg-val">NT$${fmtK(i.val)}</div>
+        <div class="donut-leg-val">NT$${fmt(Math.round(i.val))}</div>
       </div>
       <div class="donut-leg-pct">${pct}%</div>
     </div>`;
@@ -821,7 +850,7 @@ function renderAlloc(t){
         backgroundColor:dark?'rgba(25,25,25,.95)':'rgba(255,255,255,.95)',
         titleColor:dark?'#888':'#777',bodyColor:dark?'#f0ede8':'#1a1a18',
         borderColor:dark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)',borderWidth:0.5,
-        callbacks:{label:ctx=>{const pct=(ctx.raw/tot*100).toFixed(1);return ` NT$${ctx.raw.toLocaleString('zh-TW')} (${pct}%)`;}}
+        callbacks:{label:ctx=>{const pct=(ctx.raw/tot*100).toFixed(2);return ` NT$${ctx.raw.toLocaleString('zh-TW')} (${pct}%)`;}}
       }}
     }
   });
@@ -841,62 +870,63 @@ function renderBanks(t){
       </div></div>`;
   }).join('');
 }
-function isETF(ticker){
-  // ETF 代號規則：0開頭、或5位以上數字代號
-  return /^0/.test(ticker)||ticker.length>=5;
-}
+function isETF(ticker){return /^0/.test(ticker)||ticker.length>=5;}
 function renderStocks(t){
-  const el=document.getElementById('stock-list');const tot=t.totalMV||1;
+  const el=document.getElementById('stock-list');
   if(!stocks.length){el.innerHTML='<div class="empty-state">尚未新增持倉<br>輸入台股代號即時查詢現價</div>';return;}
   const sorted=[...stocks].sort((a,b)=>{
     const ae=isETF(a.ticker),be=isETF(b.ticker);
     if(ae&&!be)return -1;if(!ae&&be)return 1;return 0;
   });
-  el.innerHTML=sorted.map((s)=>{
+
+  // 表頭
+  const header=`<div class="stock-thead">
+    <div class="scol-name">股票</div>
+    <div class="scol-shares">股數</div>
+    <div class="scol-price">現價<br><span>單位成本</span></div>
+    <div class="scol-mv">市值<br><span>總成本</span></div>
+    <div class="scol-pnl">損益</div>
+    <div class="scol-ret">報酬率</div>
+    <div class="scol-act"></div>
+  </div>`;
+
+  const rows=sorted.map(s=>{
     const cp=s.currentPrice||s.costPrice;
     const mv=Math.round(cp*s.shares);
     const cost=Math.round(s.costPrice*s.shares);
     const pnl=mv-cost;
     const pnlPct=cost>0?pnl/cost*100:0;
-
-    // 只取中文名稱，英文名稱一律不顯示
     const rawName=TW_NAMES[s.ticker]||s.name||'';
-    const isChinese=s=>s&&/[\u4e00-\u9fa5]/.test(s);
-    const displayName=isChinese(rawName)?rawName:'';
-
+    const displayName=rawName&&/[\u4e00-\u9fa5]/.test(rawName)?rawName:'';
     const etf=isETF(s.ticker);
     const badgeClass=etf?'te':'ts';
-
-    // 現價判斷：有 currentPrice 且不等於 costPrice 才算抓到
     const priceOk=s.currentPrice&&Math.abs(s.currentPrice-s.costPrice)>0.001;
-    const priceStr=priceOk?`現價 $${fmt(cp,2)}`:'<span style="color:var(--hint)">現價待更新</span>';
-
-    // 損益顏色與符號
     const pnlColor=pnl>=0?'g':'r';
     const pnlSign=pnl>=0?'+':'';
-
-    return `<div class="item">
-      <div class="item-left">
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px">
-          <div class="item-ticker ${badgeClass}">${s.ticker}</div>
-          ${displayName?`<span style="font-size:12px;font-weight:500;color:var(--text)">${displayName}</span>`:''}
-        </div>
-        <div class="item-name">${fmt(s.shares)} 股 · 成本 $${fmt(s.costPrice,2)}</div>
+    return `<div class="stock-row">
+      <div class="scol-name">
+        <div class="item-ticker ${badgeClass}">${s.ticker}</div>
+        ${displayName?`<div class="stock-cn-name">${displayName}</div>`:''}
       </div>
-      <div class="item-mid">
-        <div class="item-mv">NT$${fmt(mv)}</div>
-        <div class="item-cost">成本 NT$${fmt(cost)}</div>
+      <div class="scol-shares">${fmt(s.shares)}</div>
+      <div class="scol-price">
+        <div class="scol-main">${priceOk?'$'+fmt(cp,2):'<span class="pending">待更新</span>'}</div>
+        <div class="scol-sub">$${fmt(s.costPrice,2)}</div>
       </div>
-      <div class="item-right" style="min-width:80px">
-        <div class="item-pnl ${pnlColor}">${pnlSign}${pnlPct.toFixed(2)}%</div>
-        <div class="item-pnl ${pnlColor}" style="font-size:11px;margin-top:1px">${pnlSign}NT$${fmt(Math.abs(pnl))}</div>
-        <div class="item-sub" style="margin-top:2px">${priceStr}</div>
+      <div class="scol-mv">
+        <div class="scol-main">NT$${fmt(mv)}</div>
+        <div class="scol-sub">NT$${fmt(cost)}</div>
       </div>
-      <div class="item-actions">
-        <button class="item-act-btn" onclick="openModal('stock','${s.id}')" title="買入/賣出">⊕</button>
+      <div class="scol-pnl ${pnlColor}">${pnlSign}NT$${fmt(Math.abs(pnl))}</div>
+      <div class="scol-ret ${pnlColor}">${pnlSign}${pnlPct.toFixed(2)}%</div>
+      <div class="scol-act">
+        <button class="item-act-btn" onclick="openModal('stock','${s.id}')">⊕</button>
         <button class="item-del" onclick="delStock('${s.id}')">×</button>
-      </div></div>`;
+      </div>
+    </div>`;
   }).join('');
+
+  el.innerHTML=header+rows;
 }
 function renderCryptos(t){
   const el=document.getElementById('crypto-list');const tot=t.totalMV||1;
