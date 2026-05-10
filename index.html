@@ -4,84 +4,82 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="資產">
-<meta name="theme-color" content="#0f0f0f">
+<meta name="theme-color" id="theme-color-meta" content="#f7f6f2">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>資產追蹤器</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-:root {
-  --bg: #0f0f0f;
-  --surface: #191919;
-  --surface2: #222;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.13);
-  --text: #f0ede8;
-  --muted: #888;
-  --hint: #555;
-  --green: #4caf82;
-  --red: #e06c5a;
-  --blue: #4a9eff;
-  --gold: #d4a847;
-  --r: 14px; --rs: 8px;
-  --safe-top: env(safe-area-inset-top,0px);
-  --safe-bot: env(safe-area-inset-bottom,0px);
+/* ── LIGHT (default) ── */
+:root{
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0efe9;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.13);
+  --text:#1a1a18;--muted:#777;--hint:#bbb;
+  --green:#1d9e6a;--red:#d04a30;--blue:#1a6fd4;--gold:#a07810;
+  --shadow:0 1px 4px rgba(0,0,0,.06);
+  --r:14px;--rs:8px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+/* ── DARK ── */
+.dark{
+  --bg:#0f0f0f;--surface:#191919;--surface2:#222;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --text:#f0ede8;--muted:#888;--hint:#555;
+  --green:#4caf82;--red:#e06c5a;--blue:#4a9eff;--gold:#d4a847;
+  --shadow:none;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100dvh;overscroll-behavior:none}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans-serif;min-height:100dvh;overscroll-behavior:none;transition:background .2s,color .2s}
 .mono{font-family:'DM Mono',monospace}
-
-/* ── SCREENS ── */
 .screen{display:none;min-height:100dvh}
 .screen.show{display:flex;flex-direction:column}
 
-/* ── AUTH SCREEN ── */
+/* ── AUTH ── */
 #auth-screen{align-items:center;justify-content:center;padding:2rem 1.5rem;
-  background:radial-gradient(ellipse at 30% 20%,rgba(74,158,255,.08) 0%,transparent 60%),
-             radial-gradient(ellipse at 80% 80%,rgba(76,175,130,.06) 0%,transparent 60%)}
-.auth-logo{width:72px;height:72px;background:var(--surface);border:0.5px solid var(--border2);
-  border-radius:18px;display:flex;align-items:center;justify-content:center;
-  font-size:32px;margin-bottom:1.5rem;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+  background:radial-gradient(ellipse at 30% 20%,rgba(26,111,212,.06) 0%,transparent 60%),
+             radial-gradient(ellipse at 80% 80%,rgba(29,158,106,.05) 0%,transparent 60%)}
+.dark #auth-screen{background:radial-gradient(ellipse at 30% 20%,rgba(74,158,255,.08) 0%,transparent 60%),
+  radial-gradient(ellipse at 80% 80%,rgba(76,175,130,.06) 0%,transparent 60%)}
+.auth-logo{width:72px;height:72px;background:var(--surface);border:0.5px solid var(--border2);border-radius:18px;
+  display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:1.5rem;box-shadow:var(--shadow)}
 .auth-title{font-size:24px;font-weight:500;margin-bottom:6px}
 .auth-sub{font-size:13px;color:var(--muted);text-align:center;line-height:1.7;margin-bottom:2rem;max-width:280px}
-.auth-card{width:100%;max-width:340px;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:1.25rem}
+.auth-card{width:100%;max-width:340px;background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--r);padding:1.25rem;box-shadow:var(--shadow)}
 .auth-tabs{display:flex;gap:2px;background:var(--bg);border-radius:var(--rs);padding:3px;margin-bottom:1.25rem}
-.auth-tab{flex:1;padding:7px;font-size:13px;text-align:center;border:none;background:transparent;
-  color:var(--muted);cursor:pointer;border-radius:6px;font-family:inherit;transition:all .15s}
+.auth-tab{flex:1;padding:7px;font-size:13px;text-align:center;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:6px;font-family:inherit;transition:all .15s}
 .auth-tab.active{background:var(--surface2);color:var(--text);font-weight:500}
 .field{margin-bottom:12px}
 .field label{display:block;font-size:10px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
-.field input{width:100%;font-size:14px;padding:10px 12px;border-radius:var(--rs);
-  border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit}
+.field input{width:100%;font-size:14px;padding:10px 12px;border-radius:var(--rs);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit}
 .field input:focus{outline:none;border-color:var(--blue)}
-.primary-btn{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;
-  border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.primary-btn{width:100%;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s}
 .primary-btn:active{opacity:.8}
 .auth-err{font-size:12px;color:var(--red);margin-top:8px;text-align:center;min-height:18px}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--hint);font-size:11px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:0.5px;background:var(--border2)}
+.google-btn{width:100%;padding:11px;background:transparent;color:var(--text);border:0.5px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s}
+.google-btn:active{background:var(--surface2)}
 
-/* ── APP ── */
+/* ── APP SHELL ── */
 #app-screen{flex-direction:column}
 .statusbar-pad{height:calc(var(--safe-top) + 10px);flex-shrink:0}
 .topnav{padding:0 1rem .75rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .app-title{font-size:17px;font-weight:500;letter-spacing:-.02em}
 .nav-right{display:flex;gap:8px;align-items:center}
-.icon-btn{width:34px;height:34px;background:var(--surface);border:0.5px solid var(--border);
-  border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer}
+.icon-btn{width:34px;height:34px;background:var(--surface);border:0.5px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;box-shadow:var(--shadow)}
 .icon-btn:active{background:var(--surface2)}
-.user-avatar{width:30px;height:30px;background:var(--blue);border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;cursor:pointer}
-
+.user-avatar{width:30px;height:30px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;cursor:pointer;color:#fff}
 .scroll{flex:1;overflow-y:auto;padding:0 1rem;-webkit-overflow-scrolling:touch}
 .scroll::-webkit-scrollbar{display:none}
 
 /* ── HERO ── */
-.hero{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);
-  padding:1.25rem;margin-bottom:10px;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;
-  border-radius:50%;background:radial-gradient(circle,rgba(74,158,255,.1) 0%,transparent 70%);pointer-events:none}
+.hero{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.hero::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(26,111,212,.07) 0%,transparent 70%);pointer-events:none}
+.dark .hero::before{background:radial-gradient(circle,rgba(74,158,255,.1) 0%,transparent 70%)}
 .hero-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .hero-total{font-size:34px;font-weight:300;letter-spacing:-.02em;font-family:'DM Mono',monospace;margin-bottom:12px}
 .hero-row{display:flex;gap:12px}
@@ -92,135 +90,117 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 
 /* ── ALLOC ── */
 .alloc-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-.alloc-pill{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rs);padding:10px}
+.alloc-pill{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rs);padding:10px;box-shadow:var(--shadow)}
 .alloc-emoji{font-size:14px;margin-bottom:3px}
 .alloc-val{font-size:12px;font-weight:500;font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .alloc-pct{font-size:10px;color:var(--muted);margin-top:1px}
 
 /* ── CHART ── */
-.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px}
+.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px;box-shadow:var(--shadow)}
 .chart-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .chart-title{font-size:13px;font-weight:500}
 .legend{display:flex;gap:10px;flex-wrap:wrap}
 .leg{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted)}
 .leg-line{width:12px;height:2px;border-radius:1px}
 .chart-wrap{position:relative;height:160px}
-.chart-empty{height:120px;display:flex;align-items:center;justify-content:center;
-  font-size:12px;color:var(--hint);text-align:center;line-height:1.7}
+.chart-empty{height:120px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--hint);text-align:center;line-height:1.7}
 
 /* ── TABS ── */
 .tabs-wrap{margin-bottom:10px}
-.tabs{display:flex;gap:2px;background:var(--surface);border:0.5px solid var(--border);
-  border-radius:var(--rs);padding:3px}
-.tab{flex:1;padding:8px 0;font-size:12px;text-align:center;border:none;
-  background:transparent;color:var(--muted);cursor:pointer;border-radius:6px;
-  font-family:inherit;transition:all .15s}
+.tabs{display:flex;gap:2px;background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rs);padding:3px;box-shadow:var(--shadow)}
+.tab{flex:1;padding:8px 0;font-size:12px;text-align:center;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:6px;font-family:inherit;transition:all .15s}
 .tab.active{background:var(--surface2);color:var(--text);font-weight:500}
 .panel{display:none}.panel.active{display:block}
 
 /* ── SECTION ── */
-.section{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px}
+.section{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1rem;margin-bottom:10px;box-shadow:var(--shadow)}
 .section-title{font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
-.add-note{font-size:11px;color:var(--hint);background:var(--surface2);border-radius:var(--rs);padding:8px 10px;margin-bottom:12px;line-height:1.6}
 
 /* ── FORM ── */
 .form-fields{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ff label{display:block;font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
-.ff input,.ff select{width:100%;font-size:14px;padding:10px 12px;border-radius:var(--rs);
-  border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit;-webkit-appearance:none}
+.ff input,.ff select{width:100%;font-size:14px;padding:10px 12px;border-radius:var(--rs);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit;-webkit-appearance:none}
 .ff input:focus,.ff select:focus{outline:none;border-color:var(--blue)}
 .price-row{display:flex;gap:8px;align-items:flex-end}
 .price-row .ff{flex:1}
-.price-badge{font-size:11px;padding:4px 8px;border-radius:var(--rs);background:var(--surface2);
-  color:var(--muted);white-space:nowrap;margin-bottom:0;align-self:flex-end;border:0.5px solid var(--border2)}
-.price-badge.loaded{color:var(--green);border-color:rgba(76,175,130,.3)}
-.add-btn{width:100%;padding:12px;background:var(--surface2);color:var(--text);
-  border:0.5px solid var(--border2);border-radius:var(--rs);font-size:14px;
-  cursor:pointer;font-family:inherit;font-weight:500;transition:background .15s}
+.price-badge{font-size:11px;padding:6px 8px;border-radius:var(--rs);background:var(--surface2);color:var(--muted);white-space:nowrap;align-self:flex-end;border:0.5px solid var(--border2)}
+.price-badge.loaded{color:var(--green);border-color:rgba(29,158,106,.3)}
+.dark .price-badge.loaded{border-color:rgba(76,175,130,.3)}
+.add-btn{width:100%;padding:12px;background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit;font-weight:500;transition:background .15s}
 .add-btn:active{background:var(--border2)}
 .add-btn:disabled{opacity:.5;cursor:not-allowed}
 
-/* ── LIST ── */
+/* ── ITEMS ── */
 .item-list{display:flex;flex-direction:column}
-.item{display:flex;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--border)}
+.item{display:flex;align-items:center;padding:12px 0;border-bottom:0.5px solid var(--border)}
 .item:last-child{border-bottom:none}
 .item-left{flex:1;min-width:0}
-.item-ticker{display:inline-block;border-radius:5px;padding:2px 7px;font-size:12px;
-  font-weight:500;font-family:'DM Mono',monospace;margin-bottom:2px}
-.ts{background:rgba(74,158,255,.15);color:var(--blue)}
-.tb{background:rgba(76,175,130,.15);color:var(--green)}
-.tc{background:rgba(212,168,71,.15);color:var(--gold)}
+.item-ticker{display:inline-block;border-radius:5px;padding:2px 7px;font-size:12px;font-weight:500;font-family:'DM Mono',monospace;margin-bottom:2px}
+.ts{background:rgba(26,111,212,.1);color:var(--blue)}
+.tb{background:rgba(29,158,106,.1);color:var(--green)}
+.tc{background:rgba(160,120,16,.1);color:var(--gold)}
+.dark .ts{background:rgba(74,158,255,.15)}.dark .tb{background:rgba(76,175,130,.15)}.dark .tc{background:rgba(212,168,71,.15)}
 .item-name{font-size:11px;color:var(--hint)}
-.item-mid{text-align:right;margin:0 8px;min-width:80px}
+.item-mid{text-align:right;margin:0 6px;min-width:78px}
 .item-mv{font-size:14px;font-weight:500;font-family:'DM Mono',monospace}
 .item-cost{font-size:10px;color:var(--hint)}
-.item-right{text-align:right;min-width:50px}
+.item-right{text-align:right;min-width:48px}
 .item-pnl{font-size:12px;font-family:'DM Mono',monospace;font-weight:500}
 .item-sub{font-size:10px;color:var(--hint)}
-.item-del{background:none;border:none;color:var(--hint);cursor:pointer;font-size:18px;padding:4px 6px;margin-left:2px}
+.item-actions{display:flex;gap:0;margin-left:4px}
+.item-act-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:4px 5px;border-radius:4px;line-height:1}
+.item-act-btn:active{background:var(--surface2);color:var(--blue)}
+.item-del{background:none;border:none;color:var(--hint);cursor:pointer;font-size:18px;padding:4px 4px;border-radius:3px}
 .item-del:active{color:var(--red)}
 .g{color:var(--green)}.r{color:var(--red)}
 .empty-state{text-align:center;padding:2rem 1rem;color:var(--hint);font-size:13px;line-height:1.8}
 
-/* ── PRICE SEARCH INDICATOR ── */
-.searching{display:inline-block;animation:pulse 1s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex}
+.dark .modal-bg{background:rgba(0,0,0,.6)}
+.modal{width:100%;max-width:480px;background:var(--surface);border-radius:var(--r) var(--r) 0 0;padding:1.25rem 1.25rem calc(1.25rem + var(--safe-bot));max-height:88dvh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 1.25rem}
+.modal-title{font-size:16px;font-weight:500;margin-bottom:1.25rem}
+.type-toggle{display:flex;gap:4px;background:var(--bg);border-radius:var(--rs);padding:3px;margin-bottom:16px}
+.type-btn{flex:1;padding:10px;font-size:14px;font-weight:500;text-align:center;border:none;background:transparent;cursor:pointer;border-radius:6px;font-family:inherit;transition:all .15s;color:var(--muted)}
+.type-btn.buy.active{background:rgba(29,158,106,.12);color:var(--green)}
+.type-btn.sell.active{background:rgba(208,74,48,.12);color:var(--red)}
+.dark .type-btn.buy.active{background:rgba(76,175,130,.18);color:#4caf82}
+.dark .type-btn.sell.active{background:rgba(224,108,90,.18);color:#e06c5a}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+.modal-cancel{flex:1;padding:12px;background:var(--surface2);color:var(--muted);border:0.5px solid var(--border2);border-radius:var(--rs);font-size:14px;cursor:pointer;font-family:inherit}
+.modal-save{flex:2;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
+.modal-save:disabled{opacity:.5;cursor:not-allowed}
 
-/* ── LOADING ── */
-.loading-overlay{position:fixed;inset:0;background:rgba(15,15,15,.85);
-  display:none;align-items:center;justify-content:center;
-  flex-direction:column;gap:12px;z-index:999;backdrop-filter:blur(4px)}
+/* ── LOADING / TOAST ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(247,246,242,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:999}
+.dark .loading-overlay{background:rgba(15,15,15,.85)}
 .loading-overlay.show{display:flex}
 .spin{display:inline-block;animation:spin .7s linear infinite;font-size:24px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loading-text{font-size:13px;color:var(--muted)}
-
-/* ── TOAST ── */
-.toast{position:fixed;bottom:calc(var(--safe-bot) + 24px);left:50%;
-  transform:translateX(-50%) translateY(20px);
-  background:var(--surface2);color:var(--text);border:0.5px solid var(--border2);
-  border-radius:20px;padding:9px 18px;font-size:13px;opacity:0;
-  transition:all .25s;pointer-events:none;z-index:9999;white-space:nowrap}
+.toast{position:fixed;bottom:calc(var(--safe-bot) + 24px);left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);border-radius:20px;padding:9px 18px;font-size:13px;opacity:0;transition:all .25s;pointer-events:none;z-index:9999;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── BOTTOM PAD ── */
 .bottom-pad{height:calc(var(--safe-bot) + 24px)}
-
-/* ── GOOGLE BTN ── */
-.auth-divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--hint);font-size:11px}
-.auth-divider::before,.auth-divider::after{content:'';flex:1;height:0.5px;background:var(--border2)}
-.google-btn{width:100%;padding:11px;background:transparent;color:var(--text);
-  border:0.5px solid var(--border2);border-radius:var(--rs);font-size:14px;
-  cursor:pointer;font-family:inherit;
-  display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s}
-.google-btn:active{background:var(--surface2)}
 </style>
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
+<!-- AUTH -->
 <div class="screen show" id="auth-screen">
   <div class="auth-logo">📊</div>
   <h1 class="auth-title">資產追蹤器</h1>
-  <p class="auth-sub">追蹤股票、銀行帳戶、加密貨幣，每天自動更新收盤價</p>
+  <p class="auth-sub">追蹤銀行、股票、加密貨幣，每天自動更新收盤價</p>
   <div class="auth-card">
     <div class="auth-tabs">
       <button class="auth-tab active" onclick="switchAuthTab('login')">登入</button>
       <button class="auth-tab" onclick="switchAuthTab('register')">註冊</button>
     </div>
-    <div class="field">
-      <label>Email</label>
-      <input id="auth-email" type="email" placeholder="you@example.com" inputmode="email" autocomplete="email">
-    </div>
-    <div class="field">
-      <label>密碼</label>
-      <input id="auth-password" type="password" placeholder="至少 6 個字元" autocomplete="current-password">
-    </div>
-    <div class="field" id="confirm-field" style="display:none">
-      <label>確認密碼</label>
-      <input id="auth-confirm" type="password" placeholder="再輸入一次" autocomplete="new-password">
-    </div>
+    <div class="field"><label>Email</label><input id="auth-email" type="email" placeholder="you@example.com" inputmode="email" autocomplete="email"></div>
+    <div class="field"><label>密碼</label><input id="auth-password" type="password" placeholder="至少 6 個字元" autocomplete="current-password"></div>
+    <div class="field" id="confirm-field" style="display:none"><label>確認密碼</label><input id="auth-confirm" type="password" placeholder="再輸入一次" autocomplete="new-password"></div>
     <button class="primary-btn" id="auth-btn" onclick="handleAuth()">登入</button>
     <div class="auth-divider">或</div>
     <button class="google-btn" onclick="handleGoogleLogin()">
@@ -231,19 +211,19 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
   </div>
 </div>
 
-<!-- APP SCREEN -->
+<!-- APP -->
 <div class="screen" id="app-screen">
   <div class="statusbar-pad"></div>
   <div class="topnav">
     <span class="app-title">資產追蹤器</span>
     <div class="nav-right">
+      <div class="icon-btn" id="theme-btn" onclick="toggleTheme()" title="切換主題">☀️</div>
       <div class="icon-btn" onclick="refreshAll()" title="更新報價">↻</div>
-      <div class="user-avatar" id="user-avatar" onclick="handleLogout()" title="登出">?</div>
+      <div class="user-avatar" id="user-avatar" onclick="handleLogout()">?</div>
     </div>
   </div>
 
   <div class="scroll">
-    <!-- HERO -->
     <div class="hero">
       <div class="hero-label">總資產市值</div>
       <div class="hero-total mono" id="hero-total">NT$0</div>
@@ -255,47 +235,62 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
       <div class="hero-update" id="hero-update">—</div>
     </div>
 
-    <!-- ALLOC -->
+    <!-- ALLOC: 銀行、股票、加密 -->
     <div class="alloc-row">
-      <div class="alloc-pill"><div class="alloc-emoji">📈</div><div class="alloc-val mono" id="a-stock">—</div><div class="alloc-pct" id="ap-stock">股票</div></div>
       <div class="alloc-pill"><div class="alloc-emoji">🏦</div><div class="alloc-val mono" id="a-bank">—</div><div class="alloc-pct" id="ap-bank">銀行</div></div>
+      <div class="alloc-pill"><div class="alloc-emoji">📈</div><div class="alloc-val mono" id="a-stock">—</div><div class="alloc-pct" id="ap-stock">股票</div></div>
       <div class="alloc-pill"><div class="alloc-emoji">₿</div><div class="alloc-val mono" id="a-crypto">—</div><div class="alloc-pct" id="ap-crypto">加密</div></div>
     </div>
 
-    <!-- CHART -->
     <div class="chart-card">
       <div class="chart-hdr">
         <span class="chart-title">資產走勢</span>
         <div class="legend">
-          <div class="leg"><div class="leg-line" style="background:#4a9eff"></div>市值</div>
-          <div class="leg"><div class="leg-line" style="background:#555;border-top:1.5px dashed #555;height:0"></div>成本</div>
+          <div class="leg"><div class="leg-line" style="background:var(--blue)"></div>市值</div>
+          <div class="leg"><div class="leg-line" style="background:var(--hint);border-top:1.5px dashed var(--hint);height:0"></div>成本</div>
         </div>
       </div>
       <div id="chart-empty" class="chart-empty">每天開啟 App 自動快照<br>累積幾天後顯示趨勢</div>
-      <div id="chart-wrap" class="chart-wrap" style="display:none">
-        <canvas id="trend-chart" role="img" aria-label="資產市值走勢圖"></canvas>
-      </div>
+      <div id="chart-wrap" class="chart-wrap" style="display:none"><canvas id="trend-chart"></canvas></div>
     </div>
 
-    <!-- TABS -->
+    <!-- TABS: 銀行、股票、加密 -->
     <div class="tabs-wrap">
       <div class="tabs">
-        <button class="tab active" onclick="switchTab('stock')">📈 股票</button>
-        <button class="tab" onclick="switchTab('bank')">🏦 銀行</button>
+        <button class="tab active" onclick="switchTab('bank')">🏦 銀行</button>
+        <button class="tab" onclick="switchTab('stock')">📈 股票</button>
         <button class="tab" onclick="switchTab('crypto')">₿ 加密</button>
       </div>
     </div>
 
+    <!-- BANK -->
+    <div class="panel active" id="panel-bank">
+      <div class="section">
+        <div class="section-title">新增銀行帳戶</div>
+        <div class="form-fields">
+          <div class="ff"><label>帳戶名稱</label><input id="b-name" placeholder="玉山活存、富邦定存"></div>
+          <div class="row2">
+            <div class="ff"><label>幣別</label>
+              <select id="b-currency"><option value="TWD">台幣 TWD</option><option value="USD">美元 USD</option><option value="JPY">日圓 JPY</option><option value="EUR">歐元 EUR</option></select>
+            </div>
+            <div class="ff"><label>餘額</label><input id="b-balance" type="number" placeholder="100000" inputmode="decimal"></div>
+          </div>
+        </div>
+        <button class="add-btn" onclick="addBank()">新增帳戶 +</button>
+      </div>
+      <div class="section">
+        <div class="section-title">帳戶明細</div>
+        <div class="item-list" id="bank-list"><div class="empty-state">尚未新增帳戶</div></div>
+      </div>
+    </div>
+
     <!-- STOCK -->
-    <div class="panel active" id="panel-stock">
+    <div class="panel" id="panel-stock">
       <div class="section">
         <div class="section-title">新增台股持倉</div>
         <div class="form-fields">
           <div class="price-row">
-            <div class="ff">
-              <label>股票代號</label>
-              <input id="s-ticker" placeholder="2330、0050" style="text-transform:uppercase" inputmode="text" oninput="onTickerInput(this)">
-            </div>
+            <div class="ff"><label>股票代號</label><input id="s-ticker" placeholder="2330、0050" style="text-transform:uppercase" oninput="onTickerInput(this)"></div>
             <div class="price-badge" id="s-price-badge">輸入代號查詢</div>
           </div>
           <div class="row2">
@@ -311,42 +306,13 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
       </div>
     </div>
 
-    <!-- BANK -->
-    <div class="panel" id="panel-bank">
-      <div class="section">
-        <div class="section-title">新增銀行帳戶</div>
-        <div class="form-fields">
-          <div class="ff"><label>帳戶名稱</label><input id="b-name" placeholder="玉山活存、富邦定存"></div>
-          <div class="row2">
-            <div class="ff"><label>幣別</label>
-              <select id="b-currency">
-                <option value="TWD">台幣 TWD</option>
-                <option value="USD">美元 USD</option>
-                <option value="JPY">日圓 JPY</option>
-                <option value="EUR">歐元 EUR</option>
-              </select>
-            </div>
-            <div class="ff"><label>餘額</label><input id="b-balance" type="number" placeholder="100000" inputmode="decimal"></div>
-          </div>
-        </div>
-        <button class="add-btn" onclick="addBank()">新增帳戶 +</button>
-      </div>
-      <div class="section">
-        <div class="section-title">帳戶明細 <span style="font-weight:300;font-size:10px;color:var(--hint);text-transform:none">點擊餘額更新</span></div>
-        <div class="item-list" id="bank-list"><div class="empty-state">尚未新增帳戶</div></div>
-      </div>
-    </div>
-
     <!-- CRYPTO -->
     <div class="panel" id="panel-crypto">
       <div class="section">
         <div class="section-title">新增加密貨幣</div>
         <div class="form-fields">
           <div class="price-row">
-            <div class="ff">
-              <label>幣種代號</label>
-              <input id="c-sym" placeholder="BTC、ETH、SOL" style="text-transform:uppercase" inputmode="text" oninput="onCryptoInput(this)">
-            </div>
+            <div class="ff"><label>幣種代號</label><input id="c-sym" placeholder="BTC、ETH、SOL" style="text-transform:uppercase" oninput="onCryptoInput(this)"></div>
             <div class="price-badge" id="c-price-badge">輸入代號查詢</div>
           </div>
           <div class="row2">
@@ -366,15 +332,51 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
   </div>
 </div>
 
+<!-- BUY/SELL MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">交易</div>
+    <div class="type-toggle">
+      <button class="type-btn buy active" id="modal-buy-btn" onclick="setModalType('buy')">📈 買入 / 存入</button>
+      <button class="type-btn sell" id="modal-sell-btn" onclick="setModalType('sell')">📉 賣出 / 提出</button>
+    </div>
+    <div id="modal-stock-fields" style="display:none">
+      <div class="form-fields">
+        <div class="row2">
+          <div class="ff"><label id="lbl-shares">股數</label><input id="modal-shares" type="number" placeholder="100" inputmode="decimal" min="0"></div>
+          <div class="ff"><label id="lbl-price">成交價格 (元)</label><input id="modal-price" type="number" placeholder="930" inputmode="decimal" min="0"></div>
+        </div>
+      </div>
+    </div>
+    <div id="modal-bank-fields" style="display:none">
+      <div class="form-fields">
+        <div class="ff"><label id="lbl-bank">金額</label><input id="modal-bank-amount" type="number" placeholder="10000" inputmode="decimal" min="0"></div>
+      </div>
+    </div>
+    <div id="modal-crypto-fields" style="display:none">
+      <div class="form-fields">
+        <div class="row2">
+          <div class="ff"><label id="lbl-crypto-amt">數量</label><input id="modal-crypto-amount" type="number" placeholder="0.1" step="any" inputmode="decimal" min="0"></div>
+          <div class="ff"><label id="lbl-crypto-price">成交價格 (USD)</label><input id="modal-crypto-price" type="number" placeholder="96500" inputmode="decimal" min="0"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModalDirect()">取消</button>
+      <button class="modal-save" id="modal-save-btn" onclick="saveModal()">儲存</button>
+    </div>
+  </div>
+</div>
+
 <div class="loading-overlay" id="loading"><span class="spin">↻</span><span class="loading-text" id="loading-text">載入中...</span></div>
 <div class="toast" id="toast"></div>
 
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit }
+import { getFirestore, doc, updateDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, limit }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -385,520 +387,404 @@ const firebaseConfig = {
   messagingSenderId: "1034430914829",
   appId: "1:1034430914829:web:035b116d86eebe8d535044"
 };
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
 const googleProvider = new GoogleAuthProvider();
 
-// ── CONSTANTS ────────────────────────────────────────────────
-const FX = {TWD:1, USD:32.5, JPY:0.22, EUR:35.5};
-const CRYPTO_ID = {
-  BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',
-  XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',DOT:'polkadot',
-  AVAX:'avalanche-2',MATIC:'matic-network',UNI:'uniswap',
-  LINK:'chainlink',LTC:'litecoin',ATOM:'cosmos',NEAR:'near',
-  OP:'optimism',ARB:'arbitrum',SUI:'sui',APT:'aptos',
-};
+const FX = {TWD:1,USD:32.5,JPY:0.22,EUR:35.5};
+const CRYPTO_ID = {BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',DOT:'polkadot',AVAX:'avalanche-2',MATIC:'matic-network',UNI:'uniswap',LINK:'chainlink',LTC:'litecoin',ATOM:'cosmos',NEAR:'near',OP:'optimism',ARB:'arbitrum',SUI:'sui',APT:'aptos'};
 
-// ── STATE ────────────────────────────────────────────────────
-let uid = null;
-let stocks = [], banks = [], cryptos = [], history = [];
-let priceCache = {}; // ticker -> price
-let trendChart = null;
-let tickerDebounce = null;
-let cryptoDebounce = null;
+let uid=null, stocks=[], banks=[], cryptos=[], history=[];
+let priceCache={}, trendChart=null;
+let tickerDebounce=null, cryptoDebounce=null;
+let modalCtx=null, modalTxType='buy';
+let isDark = localStorage.getItem('theme')==='dark';
+
+// ── THEME ────────────────────────────────────────────────────
+function applyTheme(){
+  document.body.classList.toggle('dark',isDark);
+  document.getElementById('theme-btn').textContent = isDark?'🌙':'☀️';
+  document.getElementById('theme-color-meta').content = isDark?'#0f0f0f':'#f7f6f2';
+}
+window.toggleTheme=()=>{ isDark=!isDark; localStorage.setItem('theme',isDark?'dark':'light'); applyTheme(); if(trendChart){trendChart.destroy();trendChart=null;} renderChart(); };
+applyTheme();
 
 // ── UTILS ────────────────────────────────────────────────────
 function fmt(n,d=0){if(n==null||isNaN(n))return '—';return Number(n).toLocaleString('zh-TW',{minimumFractionDigits:d,maximumFractionDigits:d})}
 function fmtK(n){if(n==null||isNaN(n))return '—';if(Math.abs(n)>=1e6)return (n/1e6).toFixed(1)+'M';if(Math.abs(n)>=1000)return (n/1000).toFixed(0)+'K';return fmt(n)}
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
-function showLoad(msg='載入中...'){document.getElementById('loading-text').textContent=msg;document.getElementById('loading').classList.add('show')}
-function hideLoad(){document.getElementById('loading').classList.remove('show')}
-window.showToast = showToast;
+function fmtDate(d){const p=s=>String(s).padStart(2,'0');return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function showLoad(msg='載入中...'){document.getElementById('loading-text').textContent=msg;document.getElementById('loading').classList.add('show');}
+function hideLoad(){document.getElementById('loading').classList.remove('show');}
+window.showToast=showToast;
 
-// ── AUTH UI ──────────────────────────────────────────────────
-let authMode = 'login';
-window.switchAuthTab = (mode) => {
-  authMode = mode;
+// ── AUTH ─────────────────────────────────────────────────────
+let authMode='login';
+window.switchAuthTab=(mode)=>{
+  authMode=mode;
   document.querySelectorAll('.auth-tab').forEach((el,i)=>el.classList.toggle('active',['login','register'][i]===mode));
-  document.getElementById('confirm-field').style.display = mode==='register'?'block':'none';
-  document.getElementById('auth-btn').textContent = mode==='login'?'登入':'註冊帳號';
+  document.getElementById('confirm-field').style.display=mode==='register'?'block':'none';
+  document.getElementById('auth-btn').textContent=mode==='login'?'登入':'註冊帳號';
   document.getElementById('auth-err').textContent='';
 };
-
-window.handleAuth = async () => {
-  const email = document.getElementById('auth-email').value.trim();
-  const pass = document.getElementById('auth-password').value;
-  const confirm = document.getElementById('auth-confirm').value;
-  const errEl = document.getElementById('auth-err');
-  errEl.textContent='';
-
+window.handleAuth=async()=>{
+  const email=document.getElementById('auth-email').value.trim();
+  const pass=document.getElementById('auth-password').value;
+  const confirm=document.getElementById('auth-confirm').value;
+  const errEl=document.getElementById('auth-err'); errEl.textContent='';
   if(!email||!pass){errEl.textContent='請填寫 Email 和密碼';return;}
   if(authMode==='register'&&pass!==confirm){errEl.textContent='兩次密碼不一致';return;}
   if(pass.length<6){errEl.textContent='密碼至少需要 6 個字元';return;}
-
   showLoad(authMode==='login'?'登入中...':'註冊中...');
-  try {
+  try{
     if(authMode==='login') await signInWithEmailAndPassword(auth,email,pass);
     else await createUserWithEmailAndPassword(auth,email,pass);
-  } catch(e) {
+  }catch(e){
     hideLoad();
-    const msgs={'auth/user-not-found':'找不到此帳號','auth/wrong-password':'密碼錯誤',
-      'auth/email-already-in-use':'此 Email 已被註冊','auth/invalid-email':'Email 格式不正確',
-      'auth/invalid-credential':'帳號或密碼錯誤'};
-    errEl.textContent = msgs[e.code]||('錯誤：'+e.message);
+    const msgs={'auth/user-not-found':'找不到此帳號','auth/wrong-password':'密碼錯誤','auth/email-already-in-use':'此 Email 已被註冊','auth/invalid-email':'Email 格式不正確','auth/invalid-credential':'帳號或密碼錯誤'};
+    errEl.textContent=msgs[e.code]||('錯誤：'+e.message);
   }
 };
-
-window.handleGoogleLogin = async () => {
+window.handleGoogleLogin=async()=>{
   showLoad('Google 登入中...');
-  try {
-    await signInWithPopup(auth, googleProvider);
-  } catch(e) {
-    hideLoad();
-    const msgs = {
-      'auth/popup-closed-by-user':'登入視窗被關閉，請重試',
-      'auth/cancelled-popup-request':'請重試',
-      'auth/popup-blocked':'請允許彈出視窗後重試',
-    };
-    document.getElementById('auth-err').textContent = msgs[e.code]||('登入失敗：'+e.message);
-  }
+  try{await signInWithPopup(auth,googleProvider);}
+  catch(e){hideLoad();const msgs={'auth/popup-closed-by-user':'登入視窗被關閉，請重試','auth/popup-blocked':'請允許彈出視窗後重試'};document.getElementById('auth-err').textContent=msgs[e.code]||('登入失敗：'+e.message);}
 };
+window.handleLogout=async()=>{ if(!confirm('確定要登出？'))return; await signOut(auth); };
 
-window.handleLogout = async () => {
-  if(!confirm('確定要登出？'))return;
-  await signOut(auth);
-
-};
-
-// ── AUTH STATE ───────────────────────────────────────────────
-onAuthStateChanged(auth, async (user) => {
-  if(user) {
-    uid = user.uid;
-    const initial = user.email.charAt(0).toUpperCase();
-    document.getElementById('user-avatar').textContent = initial;
+onAuthStateChanged(auth,async(user)=>{
+  if(user){
+    uid=user.uid;
+    document.getElementById('user-avatar').textContent=(user.displayName||user.email).charAt(0).toUpperCase();
     document.getElementById('auth-screen').classList.remove('show');
     document.getElementById('app-screen').classList.add('show');
-    await loadUserData();
-    hideLoad();
-  } else {
-    uid = null;
-    stocks=[]; banks=[]; cryptos=[]; history=[];
+    await loadUserData(); hideLoad();
+  }else{
+    uid=null;stocks=[];banks=[];cryptos=[];history=[];
     document.getElementById('app-screen').classList.remove('show');
     document.getElementById('auth-screen').classList.add('show');
     hideLoad();
   }
 });
 
-// ── FIRESTORE HELPERS ────────────────────────────────────────
-function userDoc(path){ return doc(db, 'users', uid, ...path.split('/')); }
-function userCol(path){ return collection(db, 'users', uid, path); }
+// ── FIRESTORE ────────────────────────────────────────────────
+function userDoc(path){return doc(db,'users',uid,...path.split('/'))}
+function userCol(path){return collection(db,'users',uid,path)}
 
-async function loadUserData() {
+async function loadUserData(){
   showLoad('載入資料中...');
-  try {
-    const [stockSnap, bankSnap, cryptoSnap, histSnap] = await Promise.all([
-      getDocs(userCol('stocks')),
-      getDocs(userCol('banks')),
-      getDocs(userCol('cryptos')),
-      getDocs(query(userCol('history'), orderBy('date','asc'), limit(90))),
-    ]);
-    stocks = stockSnap.docs.map(d=>({id:d.id,...d.data()}));
-    banks = bankSnap.docs.map(d=>({id:d.id,...d.data()}));
-    cryptos = cryptoSnap.docs.map(d=>({id:d.id,...d.data()}));
-    history = histSnap.docs.map(d=>({id:d.id,...d.data()}));
+  try{
+    const [sS,bS,cS,hS]=await Promise.all([getDocs(userCol('stocks')),getDocs(userCol('banks')),getDocs(userCol('cryptos')),getDocs(query(userCol('history'),orderBy('date','asc'),limit(90)))]);
+    stocks=sS.docs.map(d=>({id:d.id,...d.data()}));
+    banks=bS.docs.map(d=>({id:d.id,...d.data()}));
+    cryptos=cS.docs.map(d=>({id:d.id,...d.data()}));
+    history=hS.docs.map(d=>({id:d.id,...d.data()}));
     await refreshPrices(true);
     await maybeAutoSnapshot();
     renderAll();
-  } catch(e) { console.error(e); showToast('載入失敗：'+e.message); hideLoad(); }
+  }catch(e){console.error(e);showToast('載入失敗');hideLoad();}
 }
 
-// ── PRICE FETCHING ───────────────────────────────────────────
-async function fetchStockPrice(ticker) {
-  const symbol = /^\d/.test(ticker) ? ticker+'.TW' : ticker;
-  const proxy = 'https://api.allorigins.win/get?url=';
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
-  try {
-    const res = await fetch(proxy + encodeURIComponent(yahooUrl));
-    const wrapper = await res.json();
-    const json = JSON.parse(wrapper.contents);
-    const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
-    return price ? parseFloat(price.toFixed(2)) : null;
-  } catch(e) { return null; }
+// ── PRICES ───────────────────────────────────────────────────
+async function fetchStockPrice(ticker){
+  const sym=/^\d/.test(ticker)?ticker+'.TW':ticker;
+  try{
+    const res=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`));
+    const w=await res.json();
+    const json=JSON.parse(w.contents);
+    const p=json?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    return p?parseFloat(p.toFixed(2)):null;
+  }catch(e){return null;}
 }
-
-async function fetchCryptoPrice(sym) {
-  const id = CRYPTO_ID[sym.toUpperCase()] || sym.toLowerCase();
-  try {
-    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`);
-    const json = await res.json();
-    return json[id]?.usd || null;
-  } catch(e) { return null; }
+async function fetchCryptoPrice(sym){
+  const id=CRYPTO_ID[sym.toUpperCase()]||sym.toLowerCase();
+  try{
+    const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`);
+    const json=await res.json();
+    return json[id]?.usd||null;
+  }catch(e){return null;}
 }
-
-async function refreshPrices(silent=false) {
-  if(!silent) showLoad('更新報價中...');
-  const updates = [];
-
-  // Update stocks
-  for(const s of stocks) {
-    const price = await fetchStockPrice(s.ticker);
-    if(price) {
-      s.currentPrice = price;
-      updates.push(updateDoc(userDoc('stocks/'+s.id), {currentPrice:price, updatedAt:new Date().toISOString()}));
-    }
+async function refreshPrices(silent=false){
+  if(!silent)showLoad('更新報價中...');
+  const updates=[];
+  for(const s of stocks){const p=await fetchStockPrice(s.ticker);if(p){s.currentPrice=p;updates.push(updateDoc(userDoc('stocks/'+s.id),{currentPrice:p,updatedAt:new Date().toISOString()}));}}
+  if(cryptos.length){
+    const ids=cryptos.map(c=>CRYPTO_ID[c.sym]||c.sym.toLowerCase()).join(',');
+    try{
+      const res=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+      const json=await res.json();
+      cryptos.forEach(c=>{const id=CRYPTO_ID[c.sym]||c.sym.toLowerCase();const p=json[id]?.usd;if(p){c.currentPrice=p;updates.push(updateDoc(userDoc('cryptos/'+c.id),{currentPrice:p,updatedAt:new Date().toISOString()}));}});
+    }catch(e){}
   }
-
-  // Update cryptos
-  if(cryptos.length) {
-    const syms = cryptos.map(c=>c.sym);
-    const ids = syms.map(s=>CRYPTO_ID[s]||s.toLowerCase()).join(',');
-    try {
-      const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
-      const json = await res.json();
-      cryptos.forEach(c => {
-        const id = CRYPTO_ID[c.sym]||c.sym.toLowerCase();
-        const price = json[id]?.usd;
-        if(price) {
-          c.currentPrice = price;
-          updates.push(updateDoc(userDoc('cryptos/'+c.id), {currentPrice:price, updatedAt:new Date().toISOString()}));
-        }
-      });
-    } catch(e) {}
-  }
-
   await Promise.allSettled(updates);
-  const now = new Date();
-  document.getElementById('hero-update').textContent =
-    '報價更新：' + now.getMonth()+1 + '/' + now.getDate() + ' ' +
-    now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-  if(!silent) { hideLoad(); showToast('報價已更新'); renderAll(); }
+  document.getElementById('hero-update').textContent='報價更新：'+fmtDate(new Date());
+  if(!silent){hideLoad();showToast('報價已更新');renderAll();}
 }
 
-// ── LIVE PRICE LOOKUP (when typing ticker) ────────────────────
-window.onTickerInput = (el) => {
-  clearTimeout(tickerDebounce);
-  const ticker = el.value.trim().toUpperCase();
-  const badge = document.getElementById('s-price-badge');
-  if(!ticker || ticker.length < 2) { badge.textContent='輸入代號查詢'; badge.className='price-badge'; return; }
-  badge.textContent='查詢中…';
-  badge.className='price-badge';
-  tickerDebounce = setTimeout(async () => {
-    const price = await fetchStockPrice(ticker);
-    if(price) {
-      priceCache[ticker] = price;
-      badge.textContent = 'NT$' + fmt(price,1);
-      badge.className = 'price-badge loaded';
-    } else {
-      badge.textContent = '找不到代號';
-      badge.className = 'price-badge';
-    }
-  }, 800);
+window.onTickerInput=(el)=>{
+  clearTimeout(tickerDebounce);const ticker=el.value.trim().toUpperCase();const badge=document.getElementById('s-price-badge');
+  if(!ticker||ticker.length<2){badge.textContent='輸入代號查詢';badge.className='price-badge';return;}
+  badge.textContent='查詢中…';badge.className='price-badge';
+  tickerDebounce=setTimeout(async()=>{const p=await fetchStockPrice(ticker);if(p){priceCache[ticker]=p;badge.textContent='NT$'+fmt(p,1);badge.className='price-badge loaded';}else{badge.textContent='找不到代號';badge.className='price-badge';}},800);
+};
+window.onCryptoInput=(el)=>{
+  clearTimeout(cryptoDebounce);const sym=el.value.trim().toUpperCase();const badge=document.getElementById('c-price-badge');
+  if(!sym||sym.length<2){badge.textContent='輸入代號查詢';badge.className='price-badge';return;}
+  badge.textContent='查詢中…';badge.className='price-badge';
+  cryptoDebounce=setTimeout(async()=>{const p=await fetchCryptoPrice(sym);if(p){priceCache['C_'+sym]=p;badge.textContent='$'+(p>1?fmt(p,2):p.toFixed(4));badge.className='price-badge loaded';}else{badge.textContent='找不到幣種';badge.className='price-badge';}},800);
 };
 
-window.onCryptoInput = (el) => {
-  clearTimeout(cryptoDebounce);
-  const sym = el.value.trim().toUpperCase();
-  const badge = document.getElementById('c-price-badge');
-  if(!sym || sym.length < 2) { badge.textContent='輸入代號查詢'; badge.className='price-badge'; return; }
-  badge.textContent='查詢中…';
-  badge.className='price-badge';
-  cryptoDebounce = setTimeout(async () => {
-    const price = await fetchCryptoPrice(sym);
-    if(price) {
-      priceCache['C_'+sym] = price;
-      badge.textContent = '$' + (price > 1 ? fmt(price,2) : price.toFixed(4));
-      badge.className = 'price-badge loaded';
-    } else {
-      badge.textContent = '找不到幣種';
-      badge.className = 'price-badge';
-    }
-  }, 800);
-};
-
-// ── SNAPSHOT ─────────────────────────────────────────────────
-async function maybeAutoSnapshot() {
-  const today = new Date().toLocaleDateString('zh-TW');
-  const existing = history.find(h=>h.date===today);
-  if(existing) return;
-  const t = calcTotals();
-  if(t.totalMV === 0) return;
-  const snap = {date:today, totalMV:t.totalMV, totalCost:t.totalCost,
-    stockMV:t.stockMV, bankMV:t.bankMV, cryptoMV:t.cryptoMV,
-    createdAt:new Date().toISOString()};
-  try {
-    const ref = await addDoc(userCol('history'), snap);
-    history.push({id:ref.id,...snap});
-    if(history.length>90) {
-      const old = history.shift();
-      await deleteDoc(userDoc('history/'+old.id));
-    }
-  } catch(e) {}
+// ── SNAPSHOT ────────────────────────────────────────────────
+async function maybeAutoSnapshot(){
+  const today=new Date().toLocaleDateString('zh-TW');
+  if(history.find(h=>h.date===today))return;
+  const t=calcTotals();if(t.totalMV===0)return;
+  const snap={date:today,totalMV:t.totalMV,totalCost:t.totalCost,stockMV:t.stockMV,bankMV:t.bankMV,cryptoMV:t.cryptoMV,createdAt:new Date().toISOString()};
+  try{const ref=await addDoc(userCol('history'),snap);history.push({id:ref.id,...snap});if(history.length>90){const old=history.shift();await deleteDoc(userDoc('history/'+old.id));}}catch(e){}
 }
 
-// ── CALC ─────────────────────────────────────────────────────
-function calcTotals() {
+// ── CALC ────────────────────────────────────────────────────
+function calcTotals(){
   let stockMV=0,stockCost=0,bankMV=0,cryptoMV=0,cryptoCost=0;
-  stocks.forEach(s=>{ stockMV+=(s.currentPrice||s.costPrice)*s.shares; stockCost+=s.costPrice*s.shares; });
-  banks.forEach(b=>{ bankMV+=b.balance*(FX[b.currency]||1); });
-  cryptos.forEach(c=>{ cryptoMV+=(c.currentPrice||c.costUSD)*c.amount*FX.USD; cryptoCost+=c.costUSD*c.amount*FX.USD; });
-  return {stockMV,stockCost,bankMV,cryptoMV,cryptoCost,
-    totalMV:stockMV+bankMV+cryptoMV, totalCost:stockCost+bankMV+cryptoCost};
+  stocks.forEach(s=>{stockMV+=(s.currentPrice||s.costPrice)*s.shares;stockCost+=s.costPrice*s.shares;});
+  banks.forEach(b=>{bankMV+=b.balance*(FX[b.currency]||1);});
+  cryptos.forEach(c=>{cryptoMV+=(c.currentPrice||c.costUSD)*c.amount*FX.USD;cryptoCost+=c.costUSD*c.amount*FX.USD;});
+  return{stockMV,stockCost,bankMV,cryptoMV,cryptoCost,totalMV:stockMV+bankMV+cryptoMV,totalCost:stockCost+bankMV+cryptoCost};
 }
 
 // ── RENDER ───────────────────────────────────────────────────
-function renderAll() {
-  const t = calcTotals();
-  renderHero(t); renderAlloc(t);
-  renderStocks(t); renderBanks(t); renderCryptos(t);
-  renderChart();
-}
+function renderAll(){const t=calcTotals();renderHero(t);renderAlloc(t);renderBanks(t);renderStocks(t);renderCryptos(t);renderChart();}
 
-function renderHero(t) {
-  document.getElementById('hero-total').textContent = 'NT$' + fmt(t.totalMV);
-  document.getElementById('hero-cost').textContent = 'NT$' + fmt(t.totalCost);
-  const pnl = t.totalMV - t.totalCost;
-  const pnlPct = t.totalCost>0 ? pnl/t.totalCost*100 : 0;
-  const pe = document.getElementById('hero-pnl');
-  pe.textContent = (pnl>=0?'+':'')+' NT$'+fmtK(Math.abs(pnl));
-  pe.className = 'hsv mono '+(pnl>=0?'g':'r');
-  const ge = document.getElementById('hero-growth');
-  const gPct = t.totalMV>0 ? pnl/t.totalMV*100 : 0;
-  ge.textContent = (gPct>=0?'+':'')+gPct.toFixed(1)+'%';
-  ge.className = 'hsv mono '+(gPct>=0?'g':'r');
+function renderHero(t){
+  document.getElementById('hero-total').textContent='NT$'+fmt(t.totalMV);
+  document.getElementById('hero-cost').textContent='NT$'+fmt(t.totalCost);
+  const pnl=t.totalMV-t.totalCost;const pnlPct=t.totalCost>0?pnl/t.totalCost*100:0;
+  const pe=document.getElementById('hero-pnl');pe.textContent=(pnl>=0?'+':'')+' NT$'+fmtK(Math.abs(pnl));pe.className='hsv mono '+(pnl>=0?'g':'r');
+  const gPct=t.totalMV>0?pnl/t.totalMV*100:0;const ge=document.getElementById('hero-growth');ge.textContent=(gPct>=0?'+':'')+gPct.toFixed(1)+'%';ge.className='hsv mono '+(gPct>=0?'g':'r');
 }
-
-function renderAlloc(t) {
-  const tot = t.totalMV||1;
-  document.getElementById('a-stock').textContent = 'NT$'+fmtK(t.stockMV);
-  document.getElementById('ap-stock').textContent = '股票 '+(t.stockMV/tot*100).toFixed(0)+'%';
-  document.getElementById('a-bank').textContent = 'NT$'+fmtK(t.bankMV);
-  document.getElementById('ap-bank').textContent = '銀行 '+(t.bankMV/tot*100).toFixed(0)+'%';
-  document.getElementById('a-crypto').textContent = 'NT$'+fmtK(t.cryptoMV);
-  document.getElementById('ap-crypto').textContent = '加密 '+(t.cryptoMV/tot*100).toFixed(0)+'%';
+function renderAlloc(t){
+  const tot=t.totalMV||1;
+  document.getElementById('a-bank').textContent='NT$'+fmtK(t.bankMV);document.getElementById('ap-bank').textContent='銀行 '+(t.bankMV/tot*100).toFixed(0)+'%';
+  document.getElementById('a-stock').textContent='NT$'+fmtK(t.stockMV);document.getElementById('ap-stock').textContent='股票 '+(t.stockMV/tot*100).toFixed(0)+'%';
+  document.getElementById('a-crypto').textContent='NT$'+fmtK(t.cryptoMV);document.getElementById('ap-crypto').textContent='加密 '+(t.cryptoMV/tot*100).toFixed(0)+'%';
 }
-
-function renderStocks(t) {
-  const el = document.getElementById('stock-list');
-  const tot = t.totalMV||1;
-  if(!stocks.length){el.innerHTML='<div class="empty-state">尚未新增持倉<br>輸入台股代號即時查詢現價</div>';return;}
-  el.innerHTML = stocks.map((s,i)=>{
-    const cp = s.currentPrice||s.costPrice;
-    const mv = cp*s.shares;
-    const cost = s.costPrice*s.shares;
-    const pnl = mv-cost;
-    const pnlPct = cost>0?pnl/cost*100:0;
-    return `<div class="item">
-      <div class="item-left">
-        <div class="item-ticker ts">${s.ticker}</div>
-        <div class="item-name">${fmt(s.shares)} 股 · 成本 $${fmt(s.costPrice,1)}</div>
-      </div>
-      <div class="item-mid">
-        <div class="item-mv">NT$${fmtK(mv)}</div>
-        <div class="item-cost">成本 NT$${fmtK(cost)}</div>
-      </div>
-      <div class="item-right">
-        <div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(1)}%</div>
-        <div class="item-sub">現價 $${fmt(cp,1)}</div>
-      </div>
-      <button class="item-del" onclick="delStock('${s.id}')">×</button>
-    </div>`;
-  }).join('');
-}
-
-function renderBanks(t) {
-  const el = document.getElementById('bank-list');
-  const tot = t.totalMV||1;
+function renderBanks(t){
+  const el=document.getElementById('bank-list');const tot=t.totalMV||1;
   if(!banks.length){el.innerHTML='<div class="empty-state">尚未新增帳戶</div>';return;}
-  el.innerHTML = banks.map((b,i)=>{
-    const twdVal = b.balance*(FX[b.currency]||1);
-    const pct = twdVal/tot*100;
+  el.innerHTML=banks.map((b)=>{
+    const twdVal=b.balance*(FX[b.currency]||1);const pct=twdVal/tot*100;
     return `<div class="item">
-      <div class="item-left">
-        <div class="item-ticker tb">${b.name.length>7?b.name.slice(0,7)+'…':b.name}</div>
-        <div class="item-name">${b.currency}</div>
-      </div>
-      <div class="item-mid" style="cursor:pointer" onclick="editBank('${b.id}','${b.name}','${b.currency}',${b.balance})">
-        <div class="item-mv">NT$${fmtK(twdVal)}</div>
-        <div class="item-cost">${fmt(b.balance)} ${b.currency}</div>
-      </div>
-      <div class="item-right">
-        <div class="item-pnl" style="color:var(--muted)">${pct.toFixed(1)}%</div>
-        <div class="item-sub">點擊更新</div>
-      </div>
-      <button class="item-del" onclick="delBank('${b.id}')">×</button>
-    </div>`;
+      <div class="item-left"><div class="item-ticker tb">${b.name.length>7?b.name.slice(0,7)+'…':b.name}</div><div class="item-name">${b.currency}</div></div>
+      <div class="item-mid"><div class="item-mv">NT$${fmtK(twdVal)}</div><div class="item-cost">${fmt(b.balance)} ${b.currency}</div></div>
+      <div class="item-right"><div class="item-pnl" style="color:var(--muted)">${pct.toFixed(1)}%</div></div>
+      <div class="item-actions">
+        <button class="item-act-btn" onclick="openModal('bank','${b.id}')" title="存入/提出">⊕</button>
+        <button class="item-del" onclick="delBank('${b.id}')">×</button>
+      </div></div>`;
   }).join('');
 }
-
-function renderCryptos(t) {
-  const el = document.getElementById('crypto-list');
-  const tot = t.totalMV||1;
-  if(!cryptos.length){el.innerHTML='<div class="empty-state">尚未新增加密貨幣<br>輸入代號即時查詢現價</div>';return;}
-  el.innerHTML = cryptos.map((c,i)=>{
-    const cp = c.currentPrice||c.costUSD;
-    const mvTWD = cp*c.amount*FX.USD;
-    const costTWD = c.costUSD*c.amount*FX.USD;
-    const pnl = mvTWD-costTWD;
-    const pnlPct = costTWD>0?pnl/costTWD*100:0;
-    const amtStr = c.amount<0.001?c.amount.toFixed(6):c.amount<1?c.amount.toFixed(4):fmt(c.amount,2);
+function renderStocks(t){
+  const el=document.getElementById('stock-list');const tot=t.totalMV||1;
+  if(!stocks.length){el.innerHTML='<div class="empty-state">尚未新增持倉<br>輸入台股代號即時查詢現價</div>';return;}
+  el.innerHTML=stocks.map((s)=>{
+    const cp=s.currentPrice||s.costPrice;const mv=cp*s.shares;const cost=s.costPrice*s.shares;
+    const pnl=mv-cost;const pnlPct=cost>0?pnl/cost*100:0;
     return `<div class="item">
-      <div class="item-left">
-        <div class="item-ticker tc">${c.sym}</div>
-        <div class="item-name">${amtStr} · 成本 $${fmt(c.costUSD,0)}</div>
-      </div>
-      <div class="item-mid">
-        <div class="item-mv">NT$${fmtK(mvTWD)}</div>
-        <div class="item-cost">成本 NT$${fmtK(costTWD)}</div>
-      </div>
-      <div class="item-right">
-        <div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(1)}%</div>
-        <div class="item-sub">$${cp>1?fmt(cp,2):cp.toFixed(4)}</div>
-      </div>
-      <button class="item-del" onclick="delCrypto('${c.id}')">×</button>
-    </div>`;
+      <div class="item-left"><div class="item-ticker ts">${s.ticker}</div><div class="item-name">${fmt(s.shares)} 股 · 成本 $${fmt(s.costPrice,1)}</div></div>
+      <div class="item-mid"><div class="item-mv">NT$${fmtK(mv)}</div><div class="item-cost">成本 NT$${fmtK(cost)}</div></div>
+      <div class="item-right"><div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(1)}%</div><div class="item-sub">$${fmt(cp,1)}</div></div>
+      <div class="item-actions">
+        <button class="item-act-btn" onclick="openModal('stock','${s.id}')" title="買入/賣出">⊕</button>
+        <button class="item-del" onclick="delStock('${s.id}')">×</button>
+      </div></div>`;
   }).join('');
 }
-
-function renderChart() {
-  const h = history;
-  if(!h.length){
-    document.getElementById('chart-empty').style.display='flex';
-    document.getElementById('chart-wrap').style.display='none';
-    return;
-  }
+function renderCryptos(t){
+  const el=document.getElementById('crypto-list');const tot=t.totalMV||1;
+  if(!cryptos.length){el.innerHTML='<div class="empty-state">尚未新增加密貨幣<br>試試 BTC、ETH、SOL</div>';return;}
+  el.innerHTML=cryptos.map((c)=>{
+    const cp=c.currentPrice||c.costUSD;const mvTWD=cp*c.amount*FX.USD;const costTWD=c.costUSD*c.amount*FX.USD;
+    const pnl=mvTWD-costTWD;const pnlPct=costTWD>0?pnl/costTWD*100:0;
+    const amtStr=c.amount<0.001?c.amount.toFixed(6):c.amount<1?c.amount.toFixed(4):fmt(c.amount,2);
+    return `<div class="item">
+      <div class="item-left"><div class="item-ticker tc">${c.sym}</div><div class="item-name">${amtStr} · $${fmt(c.costUSD,0)}</div></div>
+      <div class="item-mid"><div class="item-mv">NT$${fmtK(mvTWD)}</div><div class="item-cost">成本 NT$${fmtK(costTWD)}</div></div>
+      <div class="item-right"><div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(1)}%</div><div class="item-sub">$${cp>1?fmt(cp,2):cp.toFixed(4)}</div></div>
+      <div class="item-actions">
+        <button class="item-act-btn" onclick="openModal('crypto','${c.id}')" title="買入/賣出">⊕</button>
+        <button class="item-del" onclick="delCrypto('${c.id}')">×</button>
+      </div></div>`;
+  }).join('');
+}
+function renderChart(){
+  const h=history;
+  const dark=document.body.classList.contains('dark');
+  const gridC=dark?'rgba(255,255,255,.03)':'rgba(0,0,0,.04)';
+  const tickC=dark?'#555':'#bbb';
+  const blueC=dark?'#4a9eff':'#1a6fd4';
+  const greenC=dark?'#4caf82':'#1d9e6a';
+  const goldC=dark?'#d4a847':'#a07810';
+  if(!h.length){document.getElementById('chart-empty').style.display='flex';document.getElementById('chart-wrap').style.display='none';return;}
   document.getElementById('chart-empty').style.display='none';
   document.getElementById('chart-wrap').style.display='block';
   if(trendChart){trendChart.destroy();trendChart=null;}
-  trendChart = new Chart(document.getElementById('trend-chart'),{
-    type:'line',
+  trendChart=new Chart(document.getElementById('trend-chart'),{type:'line',
     data:{labels:h.map(d=>d.date),datasets:[
-      {label:'總市值',data:h.map(d=>Math.round(d.totalMV)),borderColor:'#4a9eff',backgroundColor:'rgba(74,158,255,.06)',borderWidth:2,pointRadius:2,fill:true,tension:0.4},
-      {label:'投入成本',data:h.map(d=>Math.round(d.totalCost)),borderColor:'#555',borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
-      {label:'股票',data:h.map(d=>Math.round(d.stockMV)),borderColor:'#4a9eff',borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
-      {label:'銀行',data:h.map(d=>Math.round(d.bankMV)),borderColor:'#4caf82',borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
-      {label:'加密',data:h.map(d=>Math.round(d.cryptoMV)),borderColor:'#d4a847',borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
+      {label:'總市值',data:h.map(d=>Math.round(d.totalMV)),borderColor:blueC,backgroundColor:dark?'rgba(74,158,255,.06)':'rgba(26,111,212,.05)',borderWidth:2,pointRadius:2,fill:true,tension:0.4},
+      {label:'投入成本',data:h.map(d=>Math.round(d.totalCost)),borderColor:tickC,borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,tension:0.4},
+      {label:'銀行',data:h.map(d=>Math.round(d.bankMV)),borderColor:greenC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
+      {label:'股票',data:h.map(d=>Math.round(d.stockMV)),borderColor:blueC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
+      {label:'加密',data:h.map(d=>Math.round(d.cryptoMV)),borderColor:goldC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4]},
     ]},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(25,25,25,.95)',titleColor:'#888',bodyColor:'#f0ede8',
-        callbacks:{label:ctx=>' NT$'+ctx.raw.toLocaleString('zh-TW')}}},
-      scales:{
-        x:{ticks:{color:'#555',font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{color:'rgba(255,255,255,.03)'}},
-        y:{ticks:{color:'#555',font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:'rgba(255,255,255,.03)'}}
-      }}
+      plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'rgba(25,25,25,.95)':'rgba(255,255,255,.95)',titleColor:tickC,bodyColor:dark?'#f0ede8':'#1a1a18',borderColor:dark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)',borderWidth:0.5,callbacks:{label:ctx=>' NT$'+ctx.raw.toLocaleString('zh-TW')}}},
+      scales:{x:{ticks:{color:tickC,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{color:gridC}},y:{ticks:{color:tickC,font:{size:9},callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:gridC}}}}
   });
 }
 
-// ── ADD ──────────────────────────────────────────────────────
-window.addStock = async () => {
-  const ticker = document.getElementById('s-ticker').value.trim().toUpperCase();
-  const shares = parseFloat(document.getElementById('s-shares').value);
-  const cost = parseFloat(document.getElementById('s-cost').value);
+// ── ADD (first time) ─────────────────────────────────────────
+window.addStock=async()=>{
+  const ticker=document.getElementById('s-ticker').value.trim().toUpperCase();
+  const shares=parseFloat(document.getElementById('s-shares').value);
+  const cost=parseFloat(document.getElementById('s-cost').value);
   if(!ticker||isNaN(shares)||shares<=0||isNaN(cost)||cost<=0){showToast('請填寫代號、股數與成本');return;}
-  if(stocks.find(s=>s.ticker===ticker)){showToast('此股票已存在');return;}
-  const btn = document.getElementById('s-add-btn');
-  btn.disabled=true; btn.textContent='新增中...';
-  const currentPrice = priceCache[ticker] || await fetchStockPrice(ticker) || cost;
-  try {
-    const data = {ticker, shares, costPrice:cost, currentPrice, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
-    const ref = await addDoc(userCol('stocks'), data);
-    stocks.push({id:ref.id,...data});
-    renderAll();
-    ['s-ticker','s-shares','s-cost'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('s-price-badge').textContent='輸入代號查詢';
-    document.getElementById('s-price-badge').className='price-badge';
+  if(stocks.find(s=>s.ticker===ticker)){showToast('此股票已存在，請點 ⊕ 買入');return;}
+  const btn=document.getElementById('s-add-btn');btn.disabled=true;btn.textContent='新增中...';
+  const cp=priceCache[ticker]||await fetchStockPrice(ticker)||cost;
+  try{
+    const data={ticker,shares,costPrice:cost,currentPrice:cp,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    const ref=await addDoc(userCol('stocks'),data);stocks.push({id:ref.id,...data});
+    renderAll();['s-ticker','s-shares','s-cost'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('s-price-badge').textContent='輸入代號查詢';document.getElementById('s-price-badge').className='price-badge';
     showToast('已新增 '+ticker);
-  } catch(e){showToast('新增失敗');}
-  btn.disabled=false; btn.textContent='新增持倉 +';
+  }catch(e){showToast('新增失敗');}
+  btn.disabled=false;btn.textContent='新增持倉 +';
 };
-
-window.addBank = async () => {
-  const name = document.getElementById('b-name').value.trim();
-  const currency = document.getElementById('b-currency').value;
-  const balance = parseFloat(document.getElementById('b-balance').value);
+window.addBank=async()=>{
+  const name=document.getElementById('b-name').value.trim();
+  const currency=document.getElementById('b-currency').value;
+  const balance=parseFloat(document.getElementById('b-balance').value);
   if(!name||isNaN(balance)||balance<0){showToast('請填寫帳戶名稱與餘額');return;}
-  try {
-    const data = {name, currency, balance, createdAt:new Date().toISOString()};
-    const ref = await addDoc(userCol('banks'), data);
-    banks.push({id:ref.id,...data});
-    renderAll();
-    document.getElementById('b-name').value='';
-    document.getElementById('b-balance').value='';
+  try{
+    const data={name,currency,balance,createdAt:new Date().toISOString()};
+    const ref=await addDoc(userCol('banks'),data);banks.push({id:ref.id,...data});
+    renderAll();document.getElementById('b-name').value='';document.getElementById('b-balance').value='';
     showToast('已新增：'+name);
-  } catch(e){showToast('新增失敗');}
+  }catch(e){showToast('新增失敗');}
 };
-
-window.addCrypto = async () => {
-  const sym = document.getElementById('c-sym').value.trim().toUpperCase();
-  const amount = parseFloat(document.getElementById('c-amount').value);
-  const cost = parseFloat(document.getElementById('c-cost').value);
+window.addCrypto=async()=>{
+  const sym=document.getElementById('c-sym').value.trim().toUpperCase();
+  const amount=parseFloat(document.getElementById('c-amount').value);
+  const cost=parseFloat(document.getElementById('c-cost').value);
   if(!sym||isNaN(amount)||amount<=0||isNaN(cost)||cost<=0){showToast('請填寫所有欄位');return;}
-  if(cryptos.find(c=>c.sym===sym)){showToast('此幣種已存在');return;}
-  const btn = document.getElementById('c-add-btn');
-  btn.disabled=true; btn.textContent='新增中...';
-  const currentPrice = priceCache['C_'+sym] || await fetchCryptoPrice(sym) || cost;
-  try {
-    const data = {sym, amount, costUSD:cost, currentPrice, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
-    const ref = await addDoc(userCol('cryptos'), data);
-    cryptos.push({id:ref.id,...data});
-    renderAll();
-    ['c-sym','c-amount','c-cost'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('c-price-badge').textContent='輸入代號查詢';
-    document.getElementById('c-price-badge').className='price-badge';
+  if(cryptos.find(c=>c.sym===sym)){showToast('此幣種已存在，請點 ⊕ 買入');return;}
+  const btn=document.getElementById('c-add-btn');btn.disabled=true;btn.textContent='新增中...';
+  const cp=priceCache['C_'+sym]||await fetchCryptoPrice(sym)||cost;
+  try{
+    const data={sym,amount,costUSD:cost,currentPrice:cp,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    const ref=await addDoc(userCol('cryptos'),data);cryptos.push({id:ref.id,...data});
+    renderAll();['c-sym','c-amount','c-cost'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('c-price-badge').textContent='輸入代號查詢';document.getElementById('c-price-badge').className='price-badge';
     showToast('已新增 '+sym);
-  } catch(e){showToast('新增失敗');}
-  btn.disabled=false; btn.textContent='新增加密貨幣 +';
+  }catch(e){showToast('新增失敗');}
+  btn.disabled=false;btn.textContent='新增加密貨幣 +';
 };
 
-// ── EDIT BANK ────────────────────────────────────────────────
-window.editBank = async (id, name, currency, currentBalance) => {
-  const val = prompt(`更新「${name}」餘額（${currency}）：`, currentBalance);
-  if(val===null)return;
-  const n = parseFloat(val);
-  if(isNaN(n)||n<0){showToast('請輸入有效金額');return;}
-  try {
-    await updateDoc(userDoc('banks/'+id), {balance:n, updatedAt:new Date().toISOString()});
-    const idx = banks.findIndex(b=>b.id===id);
-    if(idx>=0) banks[idx].balance = n;
-    renderAll(); showToast('餘額已更新');
-  } catch(e){showToast('更新失敗');}
+// ── BUY/SELL MODAL ───────────────────────────────────────────
+window.openModal=(assetType,id)=>{
+  modalCtx={assetType,id};modalTxType='buy';
+  ['modal-stock-fields','modal-bank-fields','modal-crypto-fields'].forEach(f=>document.getElementById(f).style.display='none');
+  ['modal-shares','modal-price','modal-bank-amount','modal-crypto-amount','modal-crypto-price'].forEach(f=>document.getElementById(f).value='');
+  let title='';
+  if(assetType==='stock'){const s=stocks.find(x=>x.id===id);title=(s?.ticker||'股票')+' 買入 / 賣出';document.getElementById('modal-stock-fields').style.display='block';}
+  else if(assetType==='bank'){const b=banks.find(x=>x.id===id);title=(b?.name||'帳戶')+' 存入 / 提出';document.getElementById('modal-bank-fields').style.display='block';}
+  else if(assetType==='crypto'){const c=cryptos.find(x=>x.id===id);title=(c?.sym||'加密貨幣')+' 買入 / 賣出';document.getElementById('modal-crypto-fields').style.display='block';}
+  document.getElementById('modal-title').textContent=title;
+  setModalType('buy');
+  document.getElementById('modal-bg').classList.add('show');
 };
+window.setModalType=(type)=>{
+  modalTxType=type;
+  document.getElementById('modal-buy-btn').classList.toggle('active',type==='buy');
+  document.getElementById('modal-sell-btn').classList.toggle('active',type==='sell');
+  const isBuy=type==='buy';
+  if(modalCtx?.assetType==='stock'){document.getElementById('lbl-shares').textContent=isBuy?'買入股數':'賣出股數';document.getElementById('lbl-price').textContent=isBuy?'買入價格 (元)':'賣出價格 (元)';}
+  else if(modalCtx?.assetType==='bank'){document.getElementById('lbl-bank').textContent=isBuy?'存入金額':'提出金額';}
+  else if(modalCtx?.assetType==='crypto'){document.getElementById('lbl-crypto-amt').textContent=isBuy?'買入數量':'賣出數量';document.getElementById('lbl-crypto-price').textContent=isBuy?'買入價格 (USD)':'賣出價格 (USD)';}
+};
+window.closeModal=(e)=>{if(e.target===document.getElementById('modal-bg'))closeModalDirect();};
+window.closeModalDirect=()=>{document.getElementById('modal-bg').classList.remove('show');};
+window.saveModal=async()=>{
+  const btn=document.getElementById('modal-save-btn');btn.disabled=true;btn.textContent='儲存中...';
+  try{
+    if(modalCtx.assetType==='stock')await saveStockTx();
+    else if(modalCtx.assetType==='bank')await saveBankTx();
+    else if(modalCtx.assetType==='crypto')await saveCryptoTx();
+    closeModalDirect();renderAll();await maybeAutoSnapshot();
+  }catch(e){showToast('❌ '+e.message);}
+  btn.disabled=false;btn.textContent='儲存';
+};
+
+async function saveStockTx(){
+  const qty=parseFloat(document.getElementById('modal-shares').value);
+  const price=parseFloat(document.getElementById('modal-price').value);
+  if(isNaN(qty)||qty<=0||isNaN(price)||price<=0)throw new Error('請填寫股數與價格');
+  const s=stocks.find(x=>x.id===modalCtx.id);if(!s)throw new Error('找不到持倉');
+  if(modalTxType==='buy'){
+    const newShares=s.shares+qty;
+    const newCost=(s.shares*s.costPrice+qty*price)/newShares;
+    s.shares=newShares;s.costPrice=parseFloat(newCost.toFixed(2));s.currentPrice=price;
+    await updateDoc(userDoc('stocks/'+s.id),{shares:s.shares,costPrice:s.costPrice,currentPrice:price,updatedAt:new Date().toISOString()});
+    showToast(`買入 ${qty} 股，均成本 $${s.costPrice.toFixed(1)}`);
+  }else{
+    if(qty>s.shares)throw new Error('賣出股數超過持有');
+    s.shares=parseFloat((s.shares-qty).toFixed(4));s.currentPrice=price;
+    if(s.shares<=0){await deleteDoc(userDoc('stocks/'+s.id));stocks=stocks.filter(x=>x.id!==s.id);showToast('已全數賣出');}
+    else{await updateDoc(userDoc('stocks/'+s.id),{shares:s.shares,currentPrice:price,updatedAt:new Date().toISOString()});showToast(`賣出 ${qty} 股，剩餘 ${s.shares} 股`);}
+  }
+}
+async function saveBankTx(){
+  const amount=parseFloat(document.getElementById('modal-bank-amount').value);
+  if(isNaN(amount)||amount<=0)throw new Error('請填寫金額');
+  const b=banks.find(x=>x.id===modalCtx.id);if(!b)throw new Error('找不到帳戶');
+  if(modalTxType==='buy'){b.balance=parseFloat((b.balance+amount).toFixed(2));showToast(`已存入 ${fmt(amount)} ${b.currency}`);}
+  else{if(amount>b.balance)throw new Error('提出金額超過餘額');b.balance=parseFloat((b.balance-amount).toFixed(2));showToast(`已提出 ${fmt(amount)} ${b.currency}`);}
+  await updateDoc(userDoc('banks/'+b.id),{balance:b.balance,updatedAt:new Date().toISOString()});
+}
+async function saveCryptoTx(){
+  const qty=parseFloat(document.getElementById('modal-crypto-amount').value);
+  const price=parseFloat(document.getElementById('modal-crypto-price').value);
+  if(isNaN(qty)||qty<=0||isNaN(price)||price<=0)throw new Error('請填寫數量與價格');
+  const c=cryptos.find(x=>x.id===modalCtx.id);if(!c)throw new Error('找不到持倉');
+  if(modalTxType==='buy'){
+    const newAmt=c.amount+qty;const newCost=(c.amount*c.costUSD+qty*price)/newAmt;
+    c.amount=parseFloat(newAmt.toFixed(8));c.costUSD=parseFloat(newCost.toFixed(2));c.currentPrice=price;
+    await updateDoc(userDoc('cryptos/'+c.id),{amount:c.amount,costUSD:c.costUSD,currentPrice:price,updatedAt:new Date().toISOString()});
+    showToast(`買入 ${qty} ${c.sym}，均成本 $${c.costUSD}`);
+  }else{
+    if(qty>c.amount)throw new Error('賣出數量超過持有');
+    c.amount=parseFloat((c.amount-qty).toFixed(8));c.currentPrice=price;
+    if(c.amount<=0){await deleteDoc(userDoc('cryptos/'+c.id));cryptos=cryptos.filter(x=>x.id!==c.id);showToast('已全數賣出');}
+    else{await updateDoc(userDoc('cryptos/'+c.id),{amount:c.amount,currentPrice:price,updatedAt:new Date().toISOString()});showToast(`賣出 ${qty} ${c.sym}`);}
+  }
+}
 
 // ── DELETE ───────────────────────────────────────────────────
-window.delStock = async (id) => {
-  const s = stocks.find(x=>x.id===id);
-  if(!confirm('確定刪除 '+(s?.ticker||'')+'？'))return;
-  await deleteDoc(userDoc('stocks/'+id));
-  stocks = stocks.filter(x=>x.id!==id);
-  renderAll();
-};
-window.delBank = async (id) => {
-  const b = banks.find(x=>x.id===id);
-  if(!confirm('確定刪除 '+(b?.name||'')+'？'))return;
-  await deleteDoc(userDoc('banks/'+id));
-  banks = banks.filter(x=>x.id!==id);
-  renderAll();
-};
-window.delCrypto = async (id) => {
-  const c = cryptos.find(x=>x.id===id);
-  if(!confirm('確定刪除 '+(c?.sym||'')+'？'))return;
-  await deleteDoc(userDoc('cryptos/'+id));
-  cryptos = cryptos.filter(x=>x.id!==id);
-  renderAll();
-};
+window.delStock=async(id)=>{const s=stocks.find(x=>x.id===id);if(!confirm('確定刪除 '+(s?.ticker||'')+'？'))return;await deleteDoc(userDoc('stocks/'+id));stocks=stocks.filter(x=>x.id!==id);renderAll();};
+window.delBank=async(id)=>{const b=banks.find(x=>x.id===id);if(!confirm('確定刪除 '+(b?.name||'')+'？'))return;await deleteDoc(userDoc('banks/'+id));banks=banks.filter(x=>x.id!==id);renderAll();};
+window.delCrypto=async(id)=>{const c=cryptos.find(x=>x.id===id);if(!confirm('確定刪除 '+(c?.sym||'')+'？'))return;await deleteDoc(userDoc('cryptos/'+id));cryptos=cryptos.filter(x=>x.id!==id);renderAll();};
 
-// ── REFRESH & TAB ────────────────────────────────────────────
-window.refreshAll = async () => { await refreshPrices(false); await maybeAutoSnapshot(); };
-window.switchTab = (t) => {
-  ['stock','bank','crypto'].forEach((s,i)=>{
+// ── TAB & REFRESH ────────────────────────────────────────────
+window.refreshAll=async()=>{await refreshPrices(false);await maybeAutoSnapshot();};
+window.switchTab=(t)=>{
+  ['bank','stock','crypto'].forEach((s,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',s===t);
     document.getElementById('panel-'+s).classList.toggle('active',s===t);
   });
 };
 
-// ── PWA ──────────────────────────────────────────────────────
-if(navigator.serviceWorker) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if(navigator.serviceWorker)navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
 </body>
 </html>
