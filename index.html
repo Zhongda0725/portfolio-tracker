@@ -535,41 +535,35 @@ async function loadUserData(){
 // ── 台銀即時匯率 ─────────────────────────────────────────────
 async function loadFXRates(){
   try{
-    const proxy='https://api.allorigins.win/get?url=';
-    const url='https://rate.bot.com.tw/xrt/fliste/0/USD,JPY,EUR/JSON';
-    const res=await fetch(proxy+encodeURIComponent(url));
-    const w=await res.json();
-    const data=JSON.parse(w.contents);
-    // 台銀 API 回傳即期買入/賣出，取中間價
-    data.forEach(r=>{
-      const code=r.currency?.code;
-      const buy=parseFloat(r.spotExchangeRate?.buyingRate);
-      const sell=parseFloat(r.spotExchangeRate?.sellingRate);
-      if(code&&buy&&sell){
-        const mid=parseFloat(((buy+sell)/2).toFixed(4));
-        if(code==='USD') FX.USD=mid;
-        else if(code==='JPY') FX.JPY=parseFloat((mid/100).toFixed(6)); // JPY 以百元為單位
-        else if(code==='EUR') FX.EUR=mid;
-      }
-    });
-    updateFXDisplay();
-    console.log('匯率更新：USD='+FX.USD+' JPY='+FX.JPY+' EUR='+FX.EUR);
-  }catch(e){
-    // 改用備用 API
-    try{
-      const res2=await fetch('https://api.exchangerate-api.com/v4/latest/TWD');
-      const d=await res2.json();
-      if(d.rates){
-        if(d.rates.USD) FX.USD=parseFloat((1/d.rates.USD).toFixed(4));
-        if(d.rates.JPY) FX.JPY=parseFloat((1/d.rates.JPY).toFixed(6));
-        if(d.rates.EUR) FX.EUR=parseFloat((1/d.rates.EUR).toFixed(4));
-        updateFXDisplay();
-      }
-    }catch(e2){
-      console.log('匯率載入失敗，使用預設值');
-      updateFXDisplay(true);
+    const data=await fetchJSON('https://rate.bot.com.tw/xrt/fliste/0/USD,JPY,EUR/JSON');
+    if(Array.isArray(data)){
+      data.forEach(r=>{
+        const code=r.currency?.code;
+        const buy=parseFloat(r.spotExchangeRate?.buyingRate);
+        const sell=parseFloat(r.spotExchangeRate?.sellingRate);
+        if(code&&buy&&sell){
+          const mid=parseFloat(((buy+sell)/2).toFixed(4));
+          if(code==='USD') FX.USD=mid;
+          else if(code==='JPY') FX.JPY=parseFloat((mid/100).toFixed(6));
+          else if(code==='EUR') FX.EUR=mid;
+        }
+      });
+      updateFXDisplay();
+      return;
     }
-  }
+  }catch(e){}
+  // 備用
+  try{
+    const d=await fetchJSON('https://api.exchangerate-api.com/v4/latest/TWD');
+    if(d?.rates){
+      if(d.rates.USD) FX.USD=parseFloat((1/d.rates.USD).toFixed(4));
+      if(d.rates.JPY) FX.JPY=parseFloat((1/d.rates.JPY).toFixed(6));
+      if(d.rates.EUR) FX.EUR=parseFloat((1/d.rates.EUR).toFixed(4));
+      updateFXDisplay();
+      return;
+    }
+  }catch(e){}
+  updateFXDisplay(true);
 }
 
 function updateFXDisplay(isDefault=false){
@@ -579,45 +573,64 @@ function updateFXDisplay(isDefault=false){
   el.textContent=`USD ${FX.USD.toFixed(2)} · JPY ${(FX.JPY*100).toFixed(3)} · EUR ${FX.EUR.toFixed(2)} ${tag}`;
 }
 
-// ── 台股名稱快取（從證交所 API 動態載入）───────────────────
+// ── 台股名稱快取 ─────────────────────────────────────────────
 let TW_NAMES={};
 let twNamesLoaded=false;
 
+async function fetchJSON(url){
+  // 依序嘗試：直接抓 → corsproxy.io → allorigins.win
+  const proxies=[
+    u=>u,
+    u=>'https://corsproxy.io/?url='+encodeURIComponent(u),
+    u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+  ];
+  for(const p of proxies){
+    try{
+      const res=await fetch(p(url),{signal:AbortSignal.timeout(8000)});
+      if(!res.ok) continue;
+      const text=await res.text();
+      if(!text||text.trim().startsWith('<')) continue; // HTML 錯誤頁
+      return JSON.parse(text);
+    }catch(e){ continue; }
+  }
+  return null;
+}
+
 async function loadTWNames(){
   if(twNamesLoaded)return;
-  const proxy='https://api.allorigins.win/get?url=';
-  try{
-    // 同時抓：上市個股、上市ETF、上櫃個股、上櫃ETF
-    const [r1,r2,r3,r4]=await Promise.allSettled([
-      fetch(proxy+encodeURIComponent('https://openapi.twse.com.tw/v1/opendata/t187ap03_L')),  // 上市個股
-      fetch(proxy+encodeURIComponent('https://openapi.twse.com.tw/v1/opendata/t187ap03_E')),  // 上市ETF
-      fetch(proxy+encodeURIComponent('https://openapi.twse.com.tw/v1/opendata/t187ap03_P')),  // 上櫃個股
-      fetch(proxy+encodeURIComponent('https://openapi.twse.com.tw/v1/opendata/t187ap03_S')),  // 上櫃ETF
-    ]);
-    for(const r of [r1,r2,r3,r4]){
-      if(r.status!=='fulfilled')continue;
-      try{
-        const w=await r.value.json();
-        const data=JSON.parse(w.contents);
-        if(Array.isArray(data)) data.forEach(row=>{
-          const code=row['公司代號']||row['證券代號'];
-          const name=row['公司簡稱']||row['證券名稱'];
-          if(code&&name) TW_NAMES[code.trim()]=name.trim();
+  // TWSE openapi 支援直接 CORS，不一定需要 proxy
+  const endpoints=[
+    'https://openapi.twse.com.tw/v1/opendata/t187ap03_L', // 上市個股
+    'https://openapi.twse.com.tw/v1/opendata/t187ap03_E', // 上市 ETF
+    'https://openapi.twse.com.tw/v1/opendata/t187ap03_P', // 上櫃個股
+    'https://openapi.twse.com.tw/v1/opendata/t187ap03_S', // 上櫃 ETF
+  ];
+  let loaded=0;
+  for(const url of endpoints){
+    try{
+      const data=await fetchJSON(url);
+      if(Array.isArray(data)){
+        data.forEach(row=>{
+          const code=(row['公司代號']||row['證券代號']||'').trim();
+          const name=(row['公司簡稱']||row['證券名稱']||'').trim();
+          if(code&&name&&/[\u4e00-\u9fa5]/.test(name)) TW_NAMES[code]=name;
         });
-      }catch(e){}
-    }
-    twNamesLoaded=true;
-    console.log('台股名稱載入完成，共'+Object.keys(TW_NAMES).length+'筆');
-  }catch(e){
-    console.log('台股名稱載入失敗，使用備用清單');
-    TW_NAMES={
+        loaded++;
+      }
+    }catch(e){}
+  }
+  twNamesLoaded=true;
+  console.log('台股名稱載入：'+Object.keys(TW_NAMES).length+'筆（'+loaded+'/4 端點成功）');
+  // 若完全失敗才用備用
+  if(Object.keys(TW_NAMES).length===0){
+    Object.assign(TW_NAMES,{
       '2330':'台積電','2317':'鴻海','2454':'聯發科','2412':'中華電',
       '2882':'國泰金','2881':'富邦金','2886':'兆豐金','2891':'中信金',
       '2303':'聯電','2308':'台達電','3008':'大立光','2357':'華碩',
       '2382':'廣達','1301':'台塑','1303':'南亞','6505':'台塑化',
       '2002':'中鋼','1101':'台泥','1216':'統一','2912':'統一超',
       '2603':'長榮','2609':'陽明','2615':'萬海','2610':'華航',
-      '3711':'日月光投控','3017':'奇鋐','2383':'台光電',
+      '3711':'日月光投控','3017':'奇鋐','2383':'台光電','8021':'台灣光罩',
       '0050':'元大台灣50','0051':'元大中型100','0052':'富邦科技',
       '0056':'元大高股息','006208':'富邦台50','00878':'國泰永續高股息',
       '00919':'群益台灣精選高息','00929':'復華台灣科技優息',
@@ -626,67 +639,56 @@ async function loadTWNames(){
       '00850':'元大臺灣ESG永續','00860':'FH富時台灣ESG',
       '006203':'元大MSCI台灣','006204':'永豐臺灣加權',
       '00915':'凱基優選高股息30','00927':'群益半導體收益',
-      '00930':'永豐優息存股','8021':'台灣光罩',
-    };
-    twNamesLoaded=true;
+      '00930':'永豐優息存股',
+    });
   }
 }
 
 // ── PRICES ───────────────────────────────────────────────────
 
-// 判斷上市(tse)或上櫃(otc)
-function getExchange(ticker){
-  // ETF 及一般上市：數字開頭 4 碼或 0 開頭
-  // 上櫃股票：通常 4 碼但特定範圍，簡單以代號判斷
-  // 保守做法：先試 tse，失敗再試 otc（在 fetchTWSE 內部處理）
-  const n=parseInt(ticker);
-  if(isNaN(n)) return 'tse';
-  // 上櫃常見範圍：3、4、5、6 開頭中部分為上櫃
-  // 最保險：同時查 tse 和 otc，取有資料的那個
-  return null; // null = 自動偵測
-}
-
-// 用 TWSE MIS API 批次查詢多檔股票（名稱 + 現價）
+// 用 TWSE MIS API 批次查詢現價（名稱從 TW_NAMES 取）
 async function fetchTWSEBatch(tickers){
   if(!tickers.length) return {};
-  const proxy='https://api.allorigins.win/get?url=';
   const results={};
 
-  // tse 和 otc 同時查，取有資料的那個
+  // 先用名稱快取填入已知名稱
+  tickers.forEach(t=>{if(TW_NAMES[t]) results[t]={price:null,name:TW_NAMES[t]};});
+
+  // MIS API：tse 和 otc 同時查
   const tseList=tickers.map(t=>`tse_${t}.tw`).join('|');
   const otcList=tickers.map(t=>`otc_${t}.tw`).join('|');
-  const combined=tseList+'|'+otcList;
-  const url=`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${encodeURIComponent(combined)}&json=1&delay=0`;
+  const misUrl=`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${encodeURIComponent(tseList+'|'+otcList)}&json=1&delay=0`;
 
-  try{
-    const res=await fetch(proxy+encodeURIComponent(url));
-    const w=await res.json();
-    const data=JSON.parse(w.contents);
-    if(data?.msgArray){
+  const proxies=[
+    u=>'https://corsproxy.io/?url='+encodeURIComponent(u),
+    u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),
+  ];
+
+  for(const proxy of proxies){
+    try{
+      const res=await fetch(proxy(misUrl),{signal:AbortSignal.timeout(8000)});
+      if(!res.ok) continue;
+      const text=await res.text();
+      if(!text||text.trim().startsWith('<')) continue;
+      const data=JSON.parse(text);
+      if(!data?.msgArray?.length) continue;
+
       data.msgArray.forEach(item=>{
         const code=item.c;
         if(!code) return;
-        // n = 公司簡稱（中文），nf = 全名
         const name=item.n||'';
-        // z = 當盤成交價，盤後或休市時為 '-' → 改用昨收 y
-        const zVal=item.z;
-        const yVal=item.y;
+        const zVal=item.z, yVal=item.y;
         const price=(zVal&&zVal!=='-'&&zVal!=='--')?parseFloat(zVal):
                     (yVal&&yVal!=='-'&&yVal!=='--')?parseFloat(yVal):null;
-        if(price&&price>0){
-          results[code]={price:parseFloat(price.toFixed(2)), name};
-          // 中文名稱同步更新快取
-          if(name&&/[\u4e00-\u9fa5]/.test(name)) TW_NAMES[code]=name;
-        } else if(name&&/[\u4e00-\u9fa5]/.test(name)){
-          // 即使沒抓到價格，也更新名稱快取
-          TW_NAMES[code]=name;
-          if(results[code]) results[code].name=name;
-          else results[code]={price:null, name};
-        }
+        const chName=(name&&/[\u4e00-\u9fa5]/.test(name))?name:(TW_NAMES[code]||'');
+        if(chName) TW_NAMES[code]=chName;
+        if(!results[code]) results[code]={price:null,name:chName};
+        else results[code].name=chName||results[code].name;
+        if(price&&price>0) results[code].price=parseFloat(price.toFixed(2));
       });
-    }
-  }catch(e){
-    console.error('TWSE MIS API 失敗：',e);
+      console.log('MIS API 成功，取得',Object.keys(results).length,'筆');
+      break;
+    }catch(e){ continue; }
   }
   return results;
 }
@@ -695,11 +697,10 @@ async function fetchTWSEBatch(tickers){
 async function fetchStockPrice(ticker){
   if(!twNamesLoaded) await loadTWNames();
   const batch=await fetchTWSEBatch([ticker]);
-  if(batch[ticker]){
-    const {price,name}=batch[ticker];
-    const chName=TW_NAMES[ticker]||name||'';
-    return {price, name:chName};
-  }
+  const r=batch[ticker];
+  if(r&&r.price) return {price:r.price, name:TW_NAMES[ticker]||r.name||''};
+  // 有名稱但沒價格也回傳（讓名稱能顯示）
+  if(r&&r.name) return {price:null, name:r.name};
   return null;
 }
 
