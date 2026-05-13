@@ -1053,6 +1053,13 @@ function getFilteredTrades(){
   return trades.filter(t=>{const d=new Date(t.createdAt);return d>=from&&d<=to;});
 }
 
+// ── RENDER ───────────────────────────────────────────────────
+function renderAll(){
+  const t=calcTotals();
+  renderHero(t);renderAlloc(t);renderBanks(t);renderStocks(t);renderCryptos(t);renderChart();
+  renderCashPool();
+}
+
 function renderHero(t){
   document.getElementById('hero-total').textContent='NT$'+fmt(Math.round(t.totalMV));
   document.getElementById('hero-cost').textContent='NT$'+fmt(Math.round(t.totalCost));
