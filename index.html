@@ -629,33 +629,42 @@ function userCol(path){return collection(db,'users',uid,path)}
 async function loadUserData(){
   showLoad('載入資料中...');
   try{
-    const [sS,bS,cS,hS,tS,cpS]=await Promise.all([
+    // 分開查詢，方便找出哪一步失敗
+    const [sS,bS,cS,hS] = await Promise.all([
       getDocs(userCol('stocks')),
       getDocs(userCol('banks')),
       getDocs(userCol('cryptos')),
       getDocs(query(userCol('history'),orderBy('date','asc'),limit(90))),
-      getDocs(query(userCol('trades'),orderBy('createdAt','desc'),limit(200))),
-      getDocs(userCol('cashPool')),
     ]);
     stocks=sS.docs.map(d=>({id:d.id,...d.data()}));
     banks=bS.docs.map(d=>({id:d.id,...d.data()}));
     cryptos=cS.docs.map(d=>({id:d.id,...d.data()}));
     history=hS.docs.map(d=>({id:d.id,...d.data()}));
-    trades=tS.docs.map(d=>({id:d.id,...d.data()}));
-    // 載入現金池
-    cpS.docs.forEach(d=>{
-      const data=d.data();
-      if(data.type==='stock') cashPool.stock=data.balance||0;
-      if(data.type==='crypto') cashPool.crypto=data.balance||0;
-      // 記錄 doc id 供後續更新
-      if(data.type==='stock') cashPool.stockDocId=d.id;
-      if(data.type==='crypto') cashPool.cryptoDocId=d.id;
-    });
+
+    // trades 和 cashPool 獨立查，失敗不影響主流程
+    try{
+      const tS=await getDocs(query(userCol('trades'),orderBy('createdAt','desc'),limit(200)));
+      trades=tS.docs.map(d=>({id:d.id,...d.data()}));
+    }catch(e){ console.warn('trades 載入失敗（可能尚無資料）：',e.message); trades=[]; }
+
+    try{
+      const cpS=await getDocs(userCol('cashPool'));
+      cpS.docs.forEach(d=>{
+        const data=d.data();
+        if(data.type==='stock'){cashPool.stock=data.balance||0;cashPool.stockDocId=d.id;}
+        if(data.type==='crypto'){cashPool.crypto=data.balance||0;cashPool.cryptoDocId=d.id;}
+      });
+    }catch(e){ console.warn('cashPool 載入失敗：',e.message); }
+
     await Promise.all([loadFXRates(), loadTWNames()]);
     await refreshPrices(true);
     await maybeAutoSnapshot();
     renderAll();
-  }catch(e){console.error(e);showToast('載入失敗');hideLoad();}
+  }catch(e){
+    console.error('loadUserData 失敗：',e);
+    showToast('載入失敗：'+e.message);
+    hideLoad();
+  }
 }
 
 // ── 台銀即時匯率 ─────────────────────────────────────────────
