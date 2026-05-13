@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -639,35 +638,38 @@ async function loadUserData(){
     document.body.appendChild(div);
   };
   try{
-    const [sS,bS,cS,hS] = await Promise.all([
+    // ① 同時抓所有 Firestore 資料（包含 trades 和 cashPool）
+    const [sS,bS,cS,hS,tS,cpS] = await Promise.all([
       getDocs(userCol('stocks')),
       getDocs(userCol('banks')),
       getDocs(userCol('cryptos')),
       getDocs(query(userCol('history'),orderBy('date','asc'),limit(90))),
+      getDocs(query(userCol('trades'),orderBy('createdAt','desc'),limit(200))).catch(()=>({docs:[]})),
+      getDocs(userCol('cashPool')).catch(()=>({docs:[]})),
     ]);
     stocks=sS.docs.map(d=>({id:d.id,...d.data()}));
     banks=bS.docs.map(d=>({id:d.id,...d.data()}));
     cryptos=cS.docs.map(d=>({id:d.id,...d.data()}));
     history=hS.docs.map(d=>({id:d.id,...d.data()}));
+    trades=tS.docs.map(d=>({id:d.id,...d.data()}));
+    cpS.docs.forEach(d=>{
+      const data=d.data();
+      if(data.type==='stock'){cashPool.stock=data.balance||0;cashPool.stockDocId=d.id;}
+      if(data.type==='crypto'){cashPool.crypto=data.balance||0;cashPool.cryptoDocId=d.id;}
+    });
 
-    try{
-      const tS=await getDocs(query(userCol('trades'),orderBy('createdAt','desc'),limit(200)));
-      trades=tS.docs.map(d=>({id:d.id,...d.data()}));
-    }catch(e){ console.warn('trades 載入失敗：',e.message); trades=[]; }
-
-    try{
-      const cpS=await getDocs(userCol('cashPool'));
-      cpS.docs.forEach(d=>{
-        const data=d.data();
-        if(data.type==='stock'){cashPool.stock=data.balance||0;cashPool.stockDocId=d.id;}
-        if(data.type==='crypto'){cashPool.crypto=data.balance||0;cashPool.cryptoDocId=d.id;}
-      });
-    }catch(e){ console.warn('cashPool 載入失敗：',e.message); }
-
-    await Promise.all([loadFXRates(), loadTWNames()]);
-    await refreshPrices(true);
-    await maybeAutoSnapshot();
+    // ② 立刻用現有資料（上次儲存的現價）渲染畫面，讓使用者馬上看到
+    hideLoad();
     renderAll();
+
+    // ③ 背景非同步更新：匯率、股票名稱、最新報價（不阻塞 UI）
+    Promise.all([loadFXRates(), loadTWNames()]).then(()=>{
+      refreshPrices(true).then(()=>{
+        maybeAutoSnapshot();
+        renderAll(); // 報價更新後重新渲染
+      });
+    });
+
   }catch(e){
     console.error('loadUserData 失敗：',e);
     showErr(e.code ? e.code+' — '+e.message : e.message);
