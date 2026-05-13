@@ -211,6 +211,29 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .modal-save{flex:2;padding:12px;background:var(--blue);color:#fff;border:none;border-radius:var(--rs);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit}
 .modal-save:disabled{opacity:.5;cursor:not-allowed}
 
+/* ── PERIOD FILTER ── */
+.period-pills{display:flex;gap:4px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px}
+.period-pills::-webkit-scrollbar{display:none}
+.pill{padding:5px 12px;border-radius:20px;font-size:11px;border:0.5px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .15s}
+.pill.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.pill:active{opacity:.8}
+
+/* ── PERIOD SUMMARY ── */
+.period-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+.ps-item{background:var(--surface2);border-radius:var(--rs);padding:8px 10px}
+.ps-label{font-size:10px;color:var(--muted);margin-bottom:3px}
+.ps-val{font-size:13px;font-weight:500}
+.ps-note{font-size:10px;color:var(--hint);margin-top:2px}
+
+/* ── CASH POOL ── */
+.cash-pool{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow)}
+.cash-pool-left{display:flex;align-items:center;gap:8px}
+.cash-pool-icon{font-size:16px}
+.cash-pool-label{font-size:11px;color:var(--muted)}
+.cash-pool-val{font-size:15px;font-weight:500}
+.cash-edit-btn{font-size:11px;padding:4px 10px;border-radius:var(--rs);border:0.5px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;font-family:inherit}
+.cash-edit-btn:active{background:var(--surface2)}
+
 /* ── LOADING / TOAST ── */
 .loading-overlay{position:fixed;inset:0;background:rgba(247,246,242,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:999}
 .dark .loading-overlay{background:rgba(15,15,15,.85)}
@@ -296,8 +319,44 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
           <div class="leg"><div class="leg-line" style="background:var(--hint);border-top:1.5px dashed var(--hint);height:0"></div>成本</div>
         </div>
       </div>
+      <!-- 期間篩選 -->
+      <div class="period-pills">
+        <button class="pill active" onclick="setPeriod('1M')">本月</button>
+        <button class="pill" onclick="setPeriod('3M')">近3月</button>
+        <button class="pill" onclick="setPeriod('6M')">近6月</button>
+        <button class="pill" onclick="setPeriod('1Y')">今年</button>
+        <button class="pill" onclick="setPeriod('ALL')">全部</button>
+        <button class="pill" onclick="setPeriod('CUSTOM')">自訂</button>
+      </div>
+      <!-- 自訂日期（預設隱藏） -->
+      <div id="custom-date-row" style="display:none;gap:8px;margin-bottom:10px;align-items:center">
+        <input type="date" id="date-from" style="flex:1;font-size:12px;padding:6px 8px;border-radius:var(--rs);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit">
+        <span style="font-size:12px;color:var(--muted)">至</span>
+        <input type="date" id="date-to" style="flex:1;font-size:12px;padding:6px 8px;border-radius:var(--rs);border:0.5px solid var(--border2);background:var(--bg);color:var(--text);font-family:inherit">
+        <button onclick="applyCustomDate()" style="padding:6px 10px;font-size:12px;border-radius:var(--rs);border:0.5px solid var(--border2);background:var(--blue);color:#fff;cursor:pointer;font-family:inherit">套用</button>
+      </div>
       <div id="chart-empty" class="chart-empty">每天開啟 App 自動快照<br>累積幾天後顯示趨勢</div>
       <div id="chart-wrap" class="chart-wrap" style="display:none"><canvas id="trend-chart"></canvas></div>
+      <!-- 期間總覽 -->
+      <div class="period-summary" id="period-summary" style="display:none">
+        <div class="ps-item">
+          <div class="ps-label">期初資產</div>
+          <div class="ps-val" id="ps-start">—</div>
+        </div>
+        <div class="ps-item">
+          <div class="ps-label">期末資產</div>
+          <div class="ps-val" id="ps-end">—</div>
+        </div>
+        <div class="ps-item">
+          <div class="ps-label">期間報酬率</div>
+          <div class="ps-val" id="ps-ret">—</div>
+        </div>
+        <div class="ps-item">
+          <div class="ps-label">已實現損益</div>
+          <div class="ps-val" id="ps-realized">—</div>
+          <div class="ps-note" id="ps-realized-note"></div>
+        </div>
+      </div>
     </div>
 
     <!-- TABS: 銀行、股票、加密 -->
@@ -332,6 +391,17 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 
     <!-- STOCK -->
     <div class="panel" id="panel-stock">
+      <!-- 股票現金池 -->
+      <div class="cash-pool">
+        <div class="cash-pool-left">
+          <div class="cash-pool-icon">💵</div>
+          <div>
+            <div class="cash-pool-label">股票現金池</div>
+            <div class="cash-pool-val" id="stock-cash-val">NT$0</div>
+          </div>
+        </div>
+        <button class="cash-edit-btn" onclick="editCash('stock')">調整</button>
+      </div>
       <div class="section">
         <div class="section-title">新增台股持倉</div>
         <div class="form-fields">
@@ -354,10 +424,22 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 
     <!-- CRYPTO -->
     <div class="panel" id="panel-crypto">
-      <div class="section">
-        <div class="section-title">新增加密貨幣</div>
+      <!-- 加密現金池 -->
+      <div class="cash-pool">
+        <div class="cash-pool-left">
+          <div class="cash-pool-icon">💲</div>
+          <div>
+            <div class="cash-pool-label">加密現金池 (USD)</div>
+            <div class="cash-pool-val" id="crypto-cash-val">$0</div>
+          </div>
+        </div>
+        <button class="cash-edit-btn" onclick="editCash('crypto')">調整</button>
+      </div>
         <div class="form-fields">
           <div class="price-row">
+      <div class="section">
+        <div class="section-title">新增加密貨幣</div>
+            <div class="price-row">
             <div class="ff"><label>幣種代號</label><input id="c-sym" placeholder="BTC、ETH、SOL" style="text-transform:uppercase" oninput="onCryptoInput(this)"></div>
             <div class="price-badge" id="c-price-badge">輸入代號查詢</div>
           </div>
@@ -441,11 +523,13 @@ const googleProvider = new GoogleAuthProvider();
 let FX = {TWD:1,USD:32.5,JPY:0.22,EUR:35.5}; // 預設值，啟動後從台銀 API 更新
 const CRYPTO_ID = {BTC:'bitcoin',ETH:'ethereum',SOL:'solana',BNB:'binancecoin',XRP:'ripple',DOGE:'dogecoin',ADA:'cardano',DOT:'polkadot',AVAX:'avalanche-2',MATIC:'matic-network',UNI:'uniswap',LINK:'chainlink',LTC:'litecoin',ATOM:'cosmos',NEAR:'near',OP:'optimism',ARB:'arbitrum',SUI:'sui',APT:'aptos'};
 
-let uid=null, stocks=[], banks=[], cryptos=[], history=[];
+let uid=null, stocks=[], banks=[], cryptos=[], history=[], trades=[];
+let cashPool={stock:0, crypto:0}; // TWD for stock, USD for crypto
 let priceCache={}, trendChart=null;
 let tickerDebounce=null, cryptoDebounce=null;
 let modalCtx=null, modalTxType='buy';
 let isDark = localStorage.getItem('theme')==='dark';
+let activePeriod='1M', customFrom=null, customTo=null;
 
 // ── THEME ────────────────────────────────────────────────────
 function applyTheme(){
@@ -521,12 +605,29 @@ function userCol(path){return collection(db,'users',uid,path)}
 async function loadUserData(){
   showLoad('載入資料中...');
   try{
-    const [sS,bS,cS,hS]=await Promise.all([getDocs(userCol('stocks')),getDocs(userCol('banks')),getDocs(userCol('cryptos')),getDocs(query(userCol('history'),orderBy('date','asc'),limit(90)))]);
+    const [sS,bS,cS,hS,tS,cpS]=await Promise.all([
+      getDocs(userCol('stocks')),
+      getDocs(userCol('banks')),
+      getDocs(userCol('cryptos')),
+      getDocs(query(userCol('history'),orderBy('date','asc'),limit(90))),
+      getDocs(query(userCol('trades'),orderBy('createdAt','desc'),limit(200))),
+      getDocs(userCol('cashPool')),
+    ]);
     stocks=sS.docs.map(d=>({id:d.id,...d.data()}));
     banks=bS.docs.map(d=>({id:d.id,...d.data()}));
     cryptos=cS.docs.map(d=>({id:d.id,...d.data()}));
     history=hS.docs.map(d=>({id:d.id,...d.data()}));
-    await Promise.all([loadFXRates(), loadTWNames()]); // 同時載入匯率和股票名稱
+    trades=tS.docs.map(d=>({id:d.id,...d.data()}));
+    // 載入現金池
+    cpS.docs.forEach(d=>{
+      const data=d.data();
+      if(data.type==='stock') cashPool.stock=data.balance||0;
+      if(data.type==='crypto') cashPool.crypto=data.balance||0;
+      // 記錄 doc id 供後續更新
+      if(data.type==='stock') cashPool.stockDocId=d.id;
+      if(data.type==='crypto') cashPool.cryptoDocId=d.id;
+    });
+    await Promise.all([loadFXRates(), loadTWNames()]);
     await refreshPrices(true);
     await maybeAutoSnapshot();
     renderAll();
@@ -815,11 +916,103 @@ function calcTotals(){
   stocks.forEach(s=>{stockMV+=(s.currentPrice||s.costPrice)*s.shares;stockCost+=s.costPrice*s.shares;});
   banks.forEach(b=>{bankMV+=b.balance*(FX[b.currency]||1);});
   cryptos.forEach(c=>{cryptoMV+=(c.currentPrice||c.costUSD)*c.amount*FX.USD;cryptoCost+=c.costUSD*c.amount*FX.USD;});
-  return{stockMV,stockCost,bankMV,cryptoMV,cryptoCost,totalMV:stockMV+bankMV+cryptoMV,totalCost:stockCost+bankMV+cryptoCost};
+  // 現金池納入總資產
+  const stockCashTWD=cashPool.stock;
+  const cryptoCashTWD=cashPool.crypto*FX.USD;
+  const totalCash=stockCashTWD+cryptoCashTWD;
+  const totalMV=stockMV+bankMV+cryptoMV+totalCash;
+  const totalCost=stockCost+bankMV+cryptoCost+totalCash;
+  return{stockMV,stockCost,bankMV,cryptoMV,cryptoCost,stockCashTWD,cryptoCashTWD,totalCash,totalMV,totalCost};
 }
 
-// ── RENDER ───────────────────────────────────────────────────
-function renderAll(){const t=calcTotals();renderHero(t);renderAlloc(t);renderBanks(t);renderStocks(t);renderCryptos(t);renderChart();}
+// ── CASH POOL ────────────────────────────────────────────────
+function renderCashPool(){
+  document.getElementById('stock-cash-val').textContent='NT$'+fmt(Math.round(cashPool.stock));
+  const cryptoTWD=cashPool.crypto*FX.USD;
+  document.getElementById('crypto-cash-val').textContent='$'+fmt(cashPool.crypto,2)+' (NT$'+fmt(Math.round(cryptoTWD))+')';
+}
+
+window.editCash=async(type)=>{
+  const isCrypto=type==='crypto';
+  const cur=isCrypto?cashPool.crypto:cashPool.stock;
+  const label=isCrypto?'加密現金池餘額 (USD)':'股票現金池餘額 (TWD)';
+  const val=prompt(label+'：',cur.toFixed(2));
+  if(val===null)return;
+  const n=parseFloat(val);
+  if(isNaN(n)||n<0){showToast('請輸入有效金額');return;}
+  if(isCrypto) cashPool.crypto=n; else cashPool.stock=n;
+  // 儲存到 Firebase
+  await saveCashPool(type);
+  renderAll();
+  showToast('現金池已更新');
+};
+
+async function saveCashPool(type){
+  const docId=type==='stock'?cashPool.stockDocId:cashPool.cryptoDocId;
+  const balance=type==='stock'?cashPool.stock:cashPool.crypto;
+  if(docId){
+    await updateDoc(userDoc('cashPool/'+docId),{balance,updatedAt:new Date().toISOString()});
+  } else {
+    const ref=await addDoc(userCol('cashPool'),{type,balance,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    if(type==='stock') cashPool.stockDocId=ref.id;
+    else cashPool.cryptoDocId=ref.id;
+  }
+}
+
+// ── PERIOD FILTER ────────────────────────────────────────────
+window.setPeriod=(p)=>{
+  activePeriod=p;
+  document.querySelectorAll('.pill').forEach(el=>{
+    el.classList.toggle('active',el.textContent.trim()===({
+      '1M':'本月','3M':'近3月','6M':'近6月','1Y':'今年','ALL':'全部','CUSTOM':'自訂'
+    }[p]));
+  });
+  const customRow=document.getElementById('custom-date-row');
+  customRow.style.display=p==='CUSTOM'?'flex':'none';
+  if(p!=='CUSTOM') renderChart();
+};
+
+window.applyCustomDate=()=>{
+  const from=document.getElementById('date-from').value;
+  const to=document.getElementById('date-to').value;
+  if(!from||!to){showToast('請選擇起始和結束日期');return;}
+  customFrom=from; customTo=to;
+  renderChart();
+};
+
+function getFilteredHistory(){
+  const now=new Date();
+  let from;
+  if(activePeriod==='1M'){from=new Date(now.getFullYear(),now.getMonth(),1);}
+  else if(activePeriod==='3M'){from=new Date(now);from.setMonth(from.getMonth()-3);}
+  else if(activePeriod==='6M'){from=new Date(now);from.setMonth(from.getMonth()-6);}
+  else if(activePeriod==='1Y'){from=new Date(now.getFullYear(),0,1);}
+  else if(activePeriod==='ALL'){from=new Date(0);}
+  else if(activePeriod==='CUSTOM'&&customFrom&&customTo){
+    const f=new Date(customFrom), t=new Date(customTo);
+    return history.filter(h=>{const d=parseHistDate(h.date);return d>=f&&d<=t;});
+  }
+  return history.filter(h=>parseHistDate(h.date)>=from);
+}
+
+function parseHistDate(dateStr){
+  // 支援 zh-TW 格式 (2025/5/10) 和 ISO 格式
+  return new Date(dateStr.replace(/\//g,'-'));
+}
+
+function getFilteredTrades(){
+  const now=new Date();
+  let from, to=now;
+  if(activePeriod==='1M'){from=new Date(now.getFullYear(),now.getMonth(),1);}
+  else if(activePeriod==='3M'){from=new Date(now);from.setMonth(from.getMonth()-3);}
+  else if(activePeriod==='6M'){from=new Date(now);from.setMonth(from.getMonth()-6);}
+  else if(activePeriod==='1Y'){from=new Date(now.getFullYear(),0,1);}
+  else if(activePeriod==='ALL'){from=new Date(0);}
+  else if(activePeriod==='CUSTOM'&&customFrom&&customTo){
+    from=new Date(customFrom);to=new Date(customTo);
+  } else {from=new Date(0);}
+  return trades.filter(t=>{const d=new Date(t.createdAt);return d>=from&&d<=to;});
+}
 
 function renderHero(t){
   document.getElementById('hero-total').textContent='NT$'+fmt(Math.round(t.totalMV));
@@ -840,7 +1033,9 @@ function renderAlloc(t){
   const items=[
     {label:'🏦 銀行',val:t.bankMV,color:dark?'#4caf82':'#1d9e6a'},
     {label:'📈 股票',val:t.stockMV,color:dark?'#4a9eff':'#1a6fd4'},
+    {label:'💵 股票現金',val:t.stockCashTWD,color:dark?'#85b7eb':'#5a9fd4'},
     {label:'₿ 加密貨幣',val:t.cryptoMV,color:dark?'#d4a847':'#a07810'},
+    {label:'💲 加密現金',val:t.cryptoCashTWD,color:dark?'#f0c060':'#c89020'},
   ].filter(i=>i.val>0);
   const allZero=items.length===0;
 
@@ -880,6 +1075,52 @@ function renderAlloc(t){
       }}
     }
   });
+}
+function renderChart(){
+  const h=getFilteredHistory();
+  const dark=document.body.classList.contains('dark');
+  const gridC=dark?'rgba(255,255,255,.03)':'rgba(0,0,0,.04)';
+  const tickC=dark?'#555':'#bbb';
+  const blueC=dark?'#4a9eff':'#1a6fd4';
+  const greenC=dark?'#4caf82':'#1d9e6a';
+  const goldC=dark?'#d4a847':'#a07810';
+  if(!h.length){
+    document.getElementById('chart-empty').style.display='flex';
+    document.getElementById('chart-wrap').style.display='none';
+    document.getElementById('period-summary').style.display='none';
+    return;
+  }
+  document.getElementById('chart-empty').style.display='none';
+  document.getElementById('chart-wrap').style.display='block';
+  if(trendChart){trendChart.destroy();trendChart=null;}
+  trendChart=new Chart(document.getElementById('trend-chart'),{type:'line',
+    data:{labels:h.map(d=>d.date),datasets:[
+      {label:'總市值',data:h.map(d=>Math.round(d.totalMV)),borderColor:blueC,backgroundColor:dark?'rgba(74,158,255,.06)':'rgba(26,111,212,.05)',borderWidth:2,pointRadius:2,fill:true,tension:0.4,spanGaps:true},
+      {label:'投入成本',data:h.map(d=>Math.round(d.totalCost)),borderColor:tickC,borderDash:[4,3],borderWidth:1.5,pointRadius:0,fill:false,tension:0.4,spanGaps:true},
+      {label:'銀行',data:h.map(d=>Math.round(d.bankMV)),borderColor:greenC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4],spanGaps:true},
+      {label:'股票',data:h.map(d=>Math.round(d.stockMV)),borderColor:blueC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4],spanGaps:true},
+      {label:'加密',data:h.map(d=>Math.round(d.cryptoMV)),borderColor:goldC,borderWidth:1,pointRadius:0,fill:false,tension:0.4,borderDash:[2,4],spanGaps:true},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:dark?'rgba(25,25,25,.95)':'rgba(255,255,255,.95)',titleColor:tickC,bodyColor:dark?'#f0ede8':'#1a1a18',borderColor:dark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)',borderWidth:0.5,callbacks:{label:ctx=>' NT$'+ctx.raw.toLocaleString('zh-TW')}}},
+      scales:{x:{ticks:{color:tickC,font:{size:9},maxRotation:0,autoSkip:true,maxTicksLimit:6},grid:{color:gridC}},y:{ticks:{color:tickC,font:{size:9},callback:v=>{if(v>=1000000)return 'NT$'+(v/1000000).toFixed(1)+'M';if(v>=1000)return 'NT$'+(v/1000).toFixed(0)+'K';return 'NT$'+v;}},grid:{color:gridC}}}}
+  });
+  // 期間總覽
+  const first=h[0],last=h[h.length-1];
+  const startMV=first?.totalMV||0,endMV=last?.totalMV||0;
+  const periodRet=startMV>0?(endMV/startMV-1)*100:0;
+  const ft=getFilteredTrades().filter(t=>t.action==='sell');
+  const realizedPnL=ft.reduce((sum,t)=>sum+(t.realizedPnL||0),0);
+  document.getElementById('period-summary').style.display='grid';
+  document.getElementById('ps-start').textContent='NT$'+fmt(Math.round(startMV));
+  document.getElementById('ps-end').textContent='NT$'+fmt(Math.round(endMV));
+  const re=document.getElementById('ps-ret');
+  re.textContent=(periodRet>=0?'+':'')+periodRet.toFixed(2)+'%';
+  re.className='ps-val '+(periodRet>=0?'g':'r');
+  const pe=document.getElementById('ps-realized');
+  pe.textContent=(realizedPnL>=0?'+':'-')+'NT$'+fmt(Math.round(Math.abs(realizedPnL)));
+  pe.className='ps-val '+(realizedPnL>=0?'g':'r');
+  document.getElementById('ps-realized-note').textContent=ft.length?ft.length+'筆賣出記錄':'無賣出記錄';
 }
 function renderBanks(t){
   const el=document.getElementById('bank-list');const tot=t.totalMV||1;
@@ -1110,17 +1351,35 @@ async function saveStockTx(){
   const price=parseFloat(document.getElementById('modal-price').value);
   if(isNaN(qty)||qty<=0||isNaN(price)||price<=0)throw new Error('請填寫股數與價格');
   const s=stocks.find(x=>x.id===modalCtx.id);if(!s)throw new Error('找不到持倉');
+  const totalAmount=Math.round(qty*price);
+
   if(modalTxType==='buy'){
     const newShares=s.shares+qty;
     const newCost=(s.shares*s.costPrice+qty*price)/newShares;
     s.shares=newShares;s.costPrice=parseFloat(newCost.toFixed(2));s.currentPrice=price;
     await updateDoc(userDoc('stocks/'+s.id),{shares:s.shares,costPrice:s.costPrice,currentPrice:price,updatedAt:new Date().toISOString()});
-    showToast(`買入 ${qty} 股，均成本 $${s.costPrice.toFixed(1)}`);
+    // 扣現金池
+    cashPool.stock=Math.max(0, cashPool.stock-totalAmount);
+    await saveCashPool('stock');
+    showToast(`買入 ${qty} 股，均成本 $${s.costPrice.toFixed(1)}，現金 -NT$${fmt(totalAmount)}`);
   }else{
     if(qty>s.shares)throw new Error('賣出股數超過持有');
+    const realizedPnL=Math.round((price-s.costPrice)*qty);
     s.shares=parseFloat((s.shares-qty).toFixed(4));s.currentPrice=price;
-    if(s.shares<=0){await deleteDoc(userDoc('stocks/'+s.id));stocks=stocks.filter(x=>x.id!==s.id);showToast('已全數賣出');}
-    else{await updateDoc(userDoc('stocks/'+s.id),{shares:s.shares,currentPrice:price,updatedAt:new Date().toISOString()});showToast(`賣出 ${qty} 股，剩餘 ${s.shares} 股`);}
+    if(s.shares<=0){
+      await deleteDoc(userDoc('stocks/'+s.id));
+      stocks=stocks.filter(x=>x.id!==s.id);
+    }else{
+      await updateDoc(userDoc('stocks/'+s.id),{shares:s.shares,currentPrice:price,updatedAt:new Date().toISOString()});
+    }
+    // 記錄已實現損益
+    const trade={type:'stock',action:'sell',ticker:s.ticker,name:s.name||'',qty,sellPrice:price,costPrice:s.costPrice,realizedPnL,totalAmount,createdAt:new Date().toISOString(),date:new Date().toLocaleDateString('zh-TW')};
+    const ref=await addDoc(userCol('trades'),trade);
+    trades.unshift({id:ref.id,...trade});
+    // 加回現金池
+    cashPool.stock+=totalAmount;
+    await saveCashPool('stock');
+    showToast(`賣出 ${qty} 股，損益 ${realizedPnL>=0?'+':''}NT$${fmt(realizedPnL)}，現金 +NT$${fmt(totalAmount)}`);
   }
 }
 async function saveBankTx(){
@@ -1136,16 +1395,35 @@ async function saveCryptoTx(){
   const price=parseFloat(document.getElementById('modal-crypto-price').value);
   if(isNaN(qty)||qty<=0||isNaN(price)||price<=0)throw new Error('請填寫數量與價格');
   const c=cryptos.find(x=>x.id===modalCtx.id);if(!c)throw new Error('找不到持倉');
+  const totalUSD=parseFloat((qty*price).toFixed(2));
+
   if(modalTxType==='buy'){
     const newAmt=c.amount+qty;const newCost=(c.amount*c.costUSD+qty*price)/newAmt;
     c.amount=parseFloat(newAmt.toFixed(8));c.costUSD=parseFloat(newCost.toFixed(2));c.currentPrice=price;
     await updateDoc(userDoc('cryptos/'+c.id),{amount:c.amount,costUSD:c.costUSD,currentPrice:price,updatedAt:new Date().toISOString()});
-    showToast(`買入 ${qty} ${c.sym}，均成本 $${c.costUSD}`);
+    // 扣現金池
+    cashPool.crypto=Math.max(0, parseFloat((cashPool.crypto-totalUSD).toFixed(2)));
+    await saveCashPool('crypto');
+    showToast(`買入 ${qty} ${c.sym}，均成本 $${c.costUSD}，現金 -$${fmt(totalUSD,2)}`);
   }else{
     if(qty>c.amount)throw new Error('賣出數量超過持有');
+    const realizedPnLUSD=parseFloat(((price-c.costUSD)*qty).toFixed(2));
+    const realizedPnL=Math.round(realizedPnLUSD*FX.USD);
     c.amount=parseFloat((c.amount-qty).toFixed(8));c.currentPrice=price;
-    if(c.amount<=0){await deleteDoc(userDoc('cryptos/'+c.id));cryptos=cryptos.filter(x=>x.id!==c.id);showToast('已全數賣出');}
-    else{await updateDoc(userDoc('cryptos/'+c.id),{amount:c.amount,currentPrice:price,updatedAt:new Date().toISOString()});showToast(`賣出 ${qty} ${c.sym}`);}
+    if(c.amount<=0){
+      await deleteDoc(userDoc('cryptos/'+c.id));
+      cryptos=cryptos.filter(x=>x.id!==c.id);
+    }else{
+      await updateDoc(userDoc('cryptos/'+c.id),{amount:c.amount,currentPrice:price,updatedAt:new Date().toISOString()});
+    }
+    // 記錄已實現損益
+    const trade={type:'crypto',action:'sell',sym:c.sym,qty,sellPrice:price,costUSD:c.costUSD,realizedPnLUSD,realizedPnL,totalUSD,createdAt:new Date().toISOString(),date:new Date().toLocaleDateString('zh-TW')};
+    const ref=await addDoc(userCol('trades'),trade);
+    trades.unshift({id:ref.id,...trade});
+    // 加回現金池
+    cashPool.crypto=parseFloat((cashPool.crypto+totalUSD).toFixed(2));
+    await saveCashPool('crypto');
+    showToast(`賣出 ${qty} ${c.sym}，損益 ${realizedPnL>=0?'+':''}NT$${fmt(realizedPnL)}，現金 +$${fmt(totalUSD,2)}`);
   }
 }
 
