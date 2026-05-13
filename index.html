@@ -628,8 +628,16 @@ function userCol(path){return collection(db,'users',uid,path)}
 
 async function loadUserData(){
   showLoad('載入資料中...');
+  const showErr=(msg)=>{
+    hideLoad();
+    document.getElementById('app-screen').classList.add('show');
+    document.getElementById('auth-screen').classList.remove('show');
+    const div=document.createElement('div');
+    div.style.cssText='position:fixed;top:60px;left:1rem;right:1rem;background:#fee;border:1px solid #f00;border-radius:8px;padding:12px;font-size:12px;z-index:9999;word-break:break-all;color:#900';
+    div.textContent='載入錯誤：'+msg;
+    document.body.appendChild(div);
+  };
   try{
-    // 分開查詢，方便找出哪一步失敗
     const [sS,bS,cS,hS] = await Promise.all([
       getDocs(userCol('stocks')),
       getDocs(userCol('banks')),
@@ -641,11 +649,10 @@ async function loadUserData(){
     cryptos=cS.docs.map(d=>({id:d.id,...d.data()}));
     history=hS.docs.map(d=>({id:d.id,...d.data()}));
 
-    // trades 和 cashPool 獨立查，失敗不影響主流程
     try{
       const tS=await getDocs(query(userCol('trades'),orderBy('createdAt','desc'),limit(200)));
       trades=tS.docs.map(d=>({id:d.id,...d.data()}));
-    }catch(e){ console.warn('trades 載入失敗（可能尚無資料）：',e.message); trades=[]; }
+    }catch(e){ console.warn('trades 載入失敗：',e.message); trades=[]; }
 
     try{
       const cpS=await getDocs(userCol('cashPool'));
@@ -662,8 +669,7 @@ async function loadUserData(){
     renderAll();
   }catch(e){
     console.error('loadUserData 失敗：',e);
-    showToast('載入失敗：'+e.message);
-    hideLoad();
+    showErr(e.code ? e.code+' — '+e.message : e.message);
   }
 }
 
