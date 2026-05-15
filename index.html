@@ -174,21 +174,26 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .empty-state{text-align:center;padding:2rem 1rem;color:var(--hint);font-size:13px;line-height:1.8}
 
 /* ── STOCK TABLE ── */
-.stock-thead,.stock-row{display:grid;grid-template-columns:minmax(90px,2fr) 46px minmax(80px,1.1fr) minmax(80px,1.1fr) minmax(72px,1fr) 68px 52px;gap:0;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border)}
+.stock-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -1rem;padding:0 1rem}
+.stock-table-wrap::-webkit-scrollbar{height:3px}
+.stock-table-wrap::-webkit-scrollbar-track{background:transparent}
+.stock-table-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.stock-table-inner{min-width:580px}
+.stock-thead,.stock-row{display:grid;grid-template-columns:130px 52px 110px 110px 90px 72px 44px;gap:0;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)}
 .stock-thead{padding-bottom:6px}
 .stock-row:last-child{border-bottom:none}
-.stock-thead>div{font-size:10px;color:var(--muted);text-align:right;line-height:1.4}
+.stock-thead>div{font-size:10px;color:var(--muted);text-align:right;line-height:1.4;white-space:nowrap}
 .stock-thead>div span{color:var(--hint)}
 .stock-thead .scol-name{text-align:left}
 .stock-thead .scol-act{text-align:right}
-.scol-name{text-align:left;display:flex;flex-direction:column;gap:2px}
-.scol-name-top{display:flex;align-items:center;gap:5px;flex-wrap:nowrap}
-.item-ticker{display:inline-block;border-radius:5px;padding:2px 7px;font-size:12px;font-weight:500;font-family:'Noto Sans TC',sans-serif}
-.stock-cn-name{font-size:11px;font-weight:500;color:var(--text)}
-.scol-shares,.scol-mv,.scol-cost,.scol-pnl,.scol-ret{text-align:right}
+.scol-name{text-align:left}
+.scol-name-top{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;white-space:nowrap}
+.item-ticker{display:inline-block;border-radius:5px;padding:2px 7px;font-size:12px;font-weight:500;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;flex-shrink:0}
+.stock-cn-name{font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px}
+.scol-shares,.scol-mv,.scol-cost,.scol-pnl,.scol-ret{text-align:right;white-space:nowrap}
 .scol-act{text-align:right;display:flex;justify-content:flex-end;gap:0}
-.scol-main{font-size:12px;font-weight:500;color:var(--text)}
-.scol-sub{font-size:10px;color:var(--hint);margin-top:1px}
+.scol-main{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
+.scol-sub{font-size:10px;color:var(--hint);margin-top:1px;white-space:nowrap}
 .scol-shares{font-size:12px;color:var(--text)}
 .scol-pnl,.scol-ret{font-size:12px;font-weight:500}
 .pending{color:var(--hint);font-size:10px;font-weight:400}
@@ -1263,7 +1268,7 @@ function renderStocks(t){
     </div>`;
   }).join('');
 
-  el.innerHTML=header+rows;
+  el.innerHTML=`<div class="stock-table-wrap"><div class="stock-table-inner">${header+rows}</div></div>`;
 }
 function renderCryptos(t){
   const el=document.getElementById('crypto-list');const tot=t.totalMV||1;
