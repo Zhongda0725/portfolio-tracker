@@ -198,7 +198,20 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .scol-pnl,.scol-ret{font-size:12px;font-weight:500}
 .pending{color:var(--hint);font-size:10px;font-weight:400}
 
-/* ── MODAL ── */
+/* ── STOCK SEARCH DROPDOWN ── */
+.search-wrap{position:relative;flex:1}
+.search-results{position:absolute;top:100%;left:0;right:0;background:var(--surface);
+  border:0.5px solid var(--border2);border-radius:var(--rs);box-shadow:0 4px 16px rgba(0,0,0,.12);
+  z-index:100;max-height:200px;overflow-y:auto;margin-top:4px}
+.search-result-item{padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:0.5px solid var(--border)}
+.search-result-item:last-child{border-bottom:none}
+.search-result-item:active,.search-result-item:hover{background:var(--surface2)}
+.sri-code{font-size:12px;font-weight:500;font-family:'Noto Sans TC',sans-serif;
+  background:rgba(26,111,212,.1);color:var(--blue);padding:2px 6px;border-radius:4px;white-space:nowrap}
+.dark .sri-code{background:rgba(74,158,255,.15)}
+.sri-name{font-size:13px;color:var(--text)}
+.sri-etf{background:rgba(138,58,185,.1);color:#8a3ab9}
+.dark .sri-etf{background:rgba(180,100,255,.15);color:#c47eff}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:flex-end;justify-content:center}
 .modal-bg.show{display:flex}
 .dark .modal-bg{background:rgba(0,0,0,.6)}
@@ -423,9 +436,12 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
       <div class="section">
         <div class="section-title">新增台股持倉</div>
         <div class="form-fields">
-          <div class="price-row">
-            <div class="ff"><label>股票代號</label><input id="s-ticker" placeholder="2330、0050" style="text-transform:uppercase" oninput="onTickerInput(this)"></div>
-            <div class="price-badge" id="s-price-badge">輸入代號查詢</div>
+          <div class="ff">
+            <label>股票代號或中文名稱</label>
+            <div class="search-wrap">
+              <input id="s-ticker" placeholder="輸入代號（2330）或名稱（台積電）" oninput="onTickerInput(this)" autocomplete="off">
+              <div class="search-results" id="s-search-results" style="display:none"></div>
+            </div>
           </div>
           <div class="row2">
             <div class="ff"><label>持有股數</label><input id="s-shares" type="number" placeholder="100" inputmode="decimal"></div>
@@ -919,22 +935,80 @@ async function refreshPrices(silent=false){
   if(!silent){hideLoad();showToast('報價已更新');renderAll();}
 }
 
+// 搜尋股票（代號或中文名稱）
 window.onTickerInput=(el)=>{
-  clearTimeout(tickerDebounce);const ticker=el.value.trim().toUpperCase();const badge=document.getElementById('s-price-badge');
-  if(!ticker||ticker.length<2){badge.textContent='輸入代號查詢';badge.className='price-badge';return;}
-  badge.textContent='查詢中…';badge.className='price-badge';
-  tickerDebounce=setTimeout(async()=>{
-    const batch=await fetchTWSEBatch([ticker]);
-    const result=batch[ticker];
-    if(result){
-      priceCache[ticker]={price:result.price,name:result.name};
-      const chName=TW_NAMES[ticker]||result.name||'';
-      const displayName=chName&&/[\u4e00-\u9fa5]/.test(chName)?chName:'';
-      badge.textContent='NT$'+fmt(result.price,2)+(displayName?'  '+displayName:'');
-      badge.className='price-badge loaded';
-    }else{badge.textContent='找不到代號';badge.className='price-badge';}
-  },800);
+  clearTimeout(tickerDebounce);
+  const query=el.value.trim();
+  const resultsEl=document.getElementById('s-search-results');
+  if(!query||query.length<1){resultsEl.style.display='none';return;}
+
+  const isChinese=/[\u4e00-\u9fa5]/.test(query);
+
+  if(isChinese){
+    // 中文名稱搜尋：從 TW_NAMES 本地搜尋，不需要 API
+    const matches=Object.entries(TW_NAMES)
+      .filter(([code,name])=>name.includes(query))
+      .slice(0,8);
+    if(matches.length){
+      showSearchResults(matches,resultsEl);
+    } else {
+      resultsEl.innerHTML='<div style="padding:10px 12px;font-size:13px;color:var(--hint)">找不到符合的股票</div>';
+      resultsEl.style.display='block';
+    }
+  } else {
+    // 代號搜尋：從 TW_NAMES 本地找，同時發 API 查詢
+    const upperQ=query.toUpperCase();
+    const localMatches=Object.entries(TW_NAMES)
+      .filter(([code])=>code.startsWith(upperQ))
+      .slice(0,5);
+    if(localMatches.length) showSearchResults(localMatches,resultsEl);
+
+    // 同時查 TWSE API 取得確認
+    tickerDebounce=setTimeout(async()=>{
+      const batch=await fetchTWSEBatch([upperQ]);
+      const result=batch[upperQ];
+      if(result){
+        priceCache[upperQ]={price:result.price,name:result.name};
+        const chName=TW_NAMES[upperQ]||result.name||'';
+        if(chName&&/[\u4e00-\u9fa5]/.test(chName)){
+          TW_NAMES[upperQ]=chName;
+          // 如果目前輸入還是這個代號，更新下拉
+          if(el.value.trim().toUpperCase()===upperQ){
+            showSearchResults([[upperQ,chName]],resultsEl);
+          }
+        }
+      }
+    },600);
+  }
 };
+
+function showSearchResults(matches,resultsEl){
+  resultsEl.innerHTML=matches.map(([code,name])=>{
+    const etf=/^0/.test(code)||code.length>=5;
+    return `<div class="search-result-item" onclick="selectStock('${code}','${name}')">
+      <span class="sri-code ${etf?'sri-etf':''}">${code}</span>
+      <span class="sri-name">${name}</span>
+    </div>`;
+  }).join('');
+  resultsEl.style.display='block';
+}
+
+window.selectStock=(code,name)=>{
+  const el=document.getElementById('s-ticker');
+  el.value=code;
+  el.dataset.selectedName=name;
+  document.getElementById('s-search-results').style.display='none';
+  // 自動聚焦到股數欄位
+  document.getElementById('s-shares').focus();
+};
+
+// 點擊其他地方關閉下拉
+document.addEventListener('click',(e)=>{
+  if(!e.target.closest('.search-wrap')){
+    const r=document.getElementById('s-search-results');
+    if(r) r.style.display='none';
+  }
+});
 window.onCryptoInput=(el)=>{
   clearTimeout(cryptoDebounce);const sym=el.value.trim().toUpperCase();const badge=document.getElementById('c-price-badge');
   if(!sym||sym.length<2){badge.textContent='輸入代號查詢';badge.className='price-badge';return;}
@@ -1340,21 +1414,26 @@ function renderCryptos(t){
 
 // ── ADD (first time) ─────────────────────────────────────────
 window.addStock=async()=>{
-  const ticker=document.getElementById('s-ticker').value.trim().toUpperCase();
+  const el=document.getElementById('s-ticker');
+  const ticker=el.value.trim().toUpperCase();
   const shares=parseFloat(document.getElementById('s-shares').value);
   const cost=parseFloat(document.getElementById('s-cost').value);
   if(!ticker||isNaN(shares)||shares<=0||isNaN(cost)||cost<=0){showToast('請填寫代號、股數與成本');return;}
   if(stocks.find(s=>s.ticker===ticker)){showToast('此股票已存在，請點 ⊕ 買入');return;}
   const btn=document.getElementById('s-add-btn');btn.disabled=true;btn.textContent='新增中...';
+  // 優先用選取時記下的名稱，其次用快取，再查 API
+  let cp=cost, stockName=el.dataset.selectedName||TW_NAMES[ticker]||'';
   const cached=priceCache[ticker];
-  let cp=cost, stockName='';
-  if(cached&&cached.price){cp=cached.price;stockName=cached.name||'';}
-  else{const result=await fetchStockPrice(ticker);if(result){cp=result.price;stockName=result.name||'';}}
+  if(cached&&cached.price){cp=cached.price;if(!stockName)stockName=cached.name||'';}
+  else{const result=await fetchStockPrice(ticker);if(result){if(result.price)cp=result.price;if(!stockName)stockName=result.name||'';}}
   try{
     const data={ticker,name:stockName,shares,costPrice:cost,currentPrice:cp,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
     const ref=await addDoc(userCol('stocks'),data);stocks.push({id:ref.id,...data});
-    renderAll();['s-ticker','s-shares','s-cost'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('s-price-badge').textContent='輸入代號查詢';document.getElementById('s-price-badge').className='price-badge';
+    renderAll();
+    el.value='';el.dataset.selectedName='';
+    document.getElementById('s-shares').value='';
+    document.getElementById('s-cost').value='';
+    document.getElementById('s-search-results').style.display='none';
     showToast('已新增 '+ticker+(stockName?' '+stockName:''));
   }catch(e){showToast('新增失敗');}
   btn.disabled=false;btn.textContent='新增持倉 +';
