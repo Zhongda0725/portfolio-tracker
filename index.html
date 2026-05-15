@@ -178,8 +178,8 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .stock-table-wrap::-webkit-scrollbar{height:3px}
 .stock-table-wrap::-webkit-scrollbar-track{background:transparent}
 .stock-table-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
-.stock-table-inner{min-width:580px}
-.stock-thead,.stock-row{display:grid;grid-template-columns:130px 52px 110px 110px 90px 72px 44px;gap:0;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.stock-table-inner{min-width:560px;width:100%}
+.stock-thead,.stock-row{display:grid;grid-template-columns:1.8fr 0.6fr 1.2fr 1.2fr 1.1fr 0.9fr 52px;gap:0;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border)}
 .stock-thead{padding-bottom:6px}
 .stock-row:last-child{border-bottom:none}
 .stock-thead>div{font-size:10px;color:var(--muted);text-align:right;line-height:1.4;white-space:nowrap}
@@ -189,7 +189,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
 .scol-name{text-align:left}
 .scol-name-top{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;white-space:nowrap}
 .item-ticker{display:inline-block;border-radius:5px;padding:2px 7px;font-size:12px;font-weight:500;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;flex-shrink:0}
-.stock-cn-name{font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70px}
+.stock-cn-name{font-size:11px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
 .scol-shares,.scol-mv,.scol-cost,.scol-pnl,.scol-ret{text-align:right;white-space:nowrap}
 .scol-act{text-align:right;display:flex;justify-content:flex-end;gap:0}
 .scol-main{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap}
@@ -453,11 +453,10 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans TC',sans
         </div>
         <button class="cash-edit-btn" onclick="editCash('crypto')">調整</button>
       </div>
-        <div class="form-fields">
-          <div class="price-row">
       <div class="section">
         <div class="section-title">新增加密貨幣</div>
-            <div class="price-row">
+        <div class="form-fields">
+          <div class="price-row">
             <div class="ff"><label>幣種代號</label><input id="c-sym" placeholder="BTC、ETH、SOL" style="text-transform:uppercase" oninput="onCryptoInput(this)"></div>
             <div class="price-badge" id="c-price-badge">輸入代號查詢</div>
           </div>
@@ -1200,7 +1199,7 @@ function renderChart(){
 function renderBanks(t){
   const el=document.getElementById('bank-list');const tot=t.totalMV||1;
   if(!banks.length){el.innerHTML='<div class="empty-state">尚未新增帳戶</div>';return;}
-  const header=`<div class="stock-thead" style="grid-template-columns:1fr 80px 110px 110px 60px 44px">
+  const header=`<div class="stock-thead" style="grid-template-columns:1.5fr 0.6fr 1.1fr 1.1fr 0.7fr 44px">
     <div class="scol-name">帳戶</div>
     <div style="text-align:right">幣別</div>
     <div style="text-align:right">餘額</div>
@@ -1211,7 +1210,7 @@ function renderBanks(t){
   const rows=banks.map(b=>{
     const twdVal=b.balance*(FX[b.currency]||1);
     const pct=twdVal/tot*100;
-    return `<div class="stock-row" style="grid-template-columns:1fr 80px 110px 110px 60px 44px;cursor:pointer" onclick="openModal('bank','${b.id}')">
+    return `<div class="stock-row" style="grid-template-columns:1.5fr 0.6fr 1.1fr 1.1fr 0.7fr 44px;cursor:pointer" onclick="openModal('bank','${b.id}')">
       <div class="scol-name">
         <div class="scol-name-top">
           <div class="item-ticker tb" style="max-width:90px;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
@@ -1295,7 +1294,7 @@ function renderStocks(t){
 function renderCryptos(t){
   const el=document.getElementById('crypto-list');const tot=t.totalMV||1;
   if(!cryptos.length){el.innerHTML='<div class="empty-state">尚未新增加密貨幣<br>試試 BTC、ETH、SOL</div>';return;}
-  const header=`<div class="stock-thead" style="grid-template-columns:70px 80px 100px 100px 90px 72px 44px">
+  const header=`<div class="stock-thead" style="grid-template-columns:0.7fr 0.9fr 1.2fr 1.2fr 1.1fr 0.9fr 52px">
     <div class="scol-name">幣種</div>
     <div style="text-align:right">數量</div>
     <div style="text-align:right">市值<br><span>現價USD</span></div>
@@ -1314,7 +1313,7 @@ function renderCryptos(t){
     const pnlColor=pnl>=0?'g':'r';
     const amtStr=c.amount<0.001?c.amount.toFixed(6):c.amount<1?c.amount.toFixed(4):fmt(c.amount,4);
     const priceStr=cp>1?fmt(cp,2):cp.toFixed(4);
-    return `<div class="stock-row" style="grid-template-columns:70px 80px 100px 100px 90px 72px 44px">
+    return `<div class="stock-row" style="grid-template-columns:0.7fr 0.9fr 1.2fr 1.2fr 1.1fr 0.9fr 52px">
       <div class="scol-name">
         <div class="item-ticker tc" style="white-space:nowrap">${c.sym}</div>
       </div>
