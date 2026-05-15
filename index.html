@@ -1180,12 +1180,14 @@ function renderChart(){
   });
   // 期間總覽
   const first=h[0],last=h[h.length-1];
-  const startMV=first?.totalMV||0,endMV=last?.totalMV||0;
-  const periodRet=startMV>0?(endMV/startMV-1)*100:0;
+  // 「全部」期間：期初設為 0（從零開始計算總報酬）
+  const startMV=activePeriod==='ALL'?0:(first?.totalMV||0);
+  const endMV=last?.totalMV||0;
+  const periodRet=startMV>0?(endMV/startMV-1)*100:(startMV===0&&endMV>0?100:0);
   const ft=getFilteredTrades().filter(t=>t.action==='sell');
   const realizedPnL=ft.reduce((sum,t)=>sum+(t.realizedPnL||0),0);
   document.getElementById('period-summary').style.display='grid';
-  document.getElementById('ps-start').textContent='NT$'+fmt(Math.round(startMV));
+  document.getElementById('ps-start').textContent=activePeriod==='ALL'?'NT$0（起始）':'NT$'+fmt(Math.round(startMV));
   document.getElementById('ps-end').textContent='NT$'+fmt(Math.round(endMV));
   const re=document.getElementById('ps-ret');
   re.textContent=(periodRet>=0?'+':'')+periodRet.toFixed(2)+'%';
@@ -1198,17 +1200,37 @@ function renderChart(){
 function renderBanks(t){
   const el=document.getElementById('bank-list');const tot=t.totalMV||1;
   if(!banks.length){el.innerHTML='<div class="empty-state">尚未新增帳戶</div>';return;}
-  el.innerHTML=banks.map((b)=>{
-    const twdVal=b.balance*(FX[b.currency]||1);const pct=twdVal/tot*100;
-    return `<div class="item">
-      <div class="item-left"><div class="item-ticker tb">${b.name.length>7?b.name.slice(0,7)+'…':b.name}</div><div class="item-name">${b.currency}</div></div>
-      <div class="item-mid"><div class="item-mv">NT$${fmtK(twdVal)}</div><div class="item-cost">${fmt(b.balance)} ${b.currency}</div></div>
-      <div class="item-right"><div class="item-pnl" style="color:var(--muted)">${pct.toFixed(1)}%</div></div>
-      <div class="item-actions">
-        <button class="item-act-btn" onclick="openModal('bank','${b.id}')" title="存入/提出">⊕</button>
+  const header=`<div class="stock-thead" style="grid-template-columns:1fr 80px 110px 110px 60px 44px">
+    <div class="scol-name">帳戶</div>
+    <div style="text-align:right">幣別</div>
+    <div style="text-align:right">餘額</div>
+    <div style="text-align:right">台幣換算</div>
+    <div style="text-align:right">比重</div>
+    <div></div>
+  </div>`;
+  const rows=banks.map(b=>{
+    const twdVal=b.balance*(FX[b.currency]||1);
+    const pct=twdVal/tot*100;
+    return `<div class="stock-row" style="grid-template-columns:1fr 80px 110px 110px 60px 44px;cursor:pointer" onclick="openModal('bank','${b.id}')">
+      <div class="scol-name">
+        <div class="scol-name-top">
+          <div class="item-ticker tb" style="max-width:90px;overflow:hidden;text-overflow:ellipsis">${b.name}</div>
+        </div>
+      </div>
+      <div style="text-align:right;font-size:12px;color:var(--muted)">${b.currency}</div>
+      <div style="text-align:right">
+        <div class="scol-main">${fmt(b.balance,b.currency==='JPY'?0:2)}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="scol-main">NT$${fmt(Math.round(twdVal))}</div>
+      </div>
+      <div style="text-align:right;font-size:12px;color:var(--muted)">${pct.toFixed(2)}%</div>
+      <div class="scol-act" onclick="event.stopPropagation()">
         <button class="item-del" onclick="delBank('${b.id}')">×</button>
-      </div></div>`;
+      </div>
+    </div>`;
   }).join('');
+  el.innerHTML=`<div class="stock-table-wrap"><div class="stock-table-inner" style="min-width:460px">${header+rows}</div></div>`;
 }
 function isETF(ticker){return /^0/.test(ticker)||ticker.length>=5;}
 function renderStocks(t){
@@ -1273,19 +1295,47 @@ function renderStocks(t){
 function renderCryptos(t){
   const el=document.getElementById('crypto-list');const tot=t.totalMV||1;
   if(!cryptos.length){el.innerHTML='<div class="empty-state">尚未新增加密貨幣<br>試試 BTC、ETH、SOL</div>';return;}
-  el.innerHTML=cryptos.map((c)=>{
-    const cp=c.currentPrice||c.costUSD;const mvTWD=cp*c.amount*FX.USD;const costTWD=c.costUSD*c.amount*FX.USD;
-    const pnl=mvTWD-costTWD;const pnlPct=costTWD>0?pnl/costTWD*100:0;
-    const amtStr=c.amount<0.001?c.amount.toFixed(6):c.amount<1?c.amount.toFixed(4):fmt(c.amount,2);
-    return `<div class="item">
-      <div class="item-left"><div class="item-ticker tc">${c.sym}</div><div class="item-name">${amtStr} · $${fmt(c.costUSD,0)}</div></div>
-      <div class="item-mid"><div class="item-mv">NT$${fmtK(mvTWD)}</div><div class="item-cost">成本 NT$${fmtK(costTWD)}</div></div>
-      <div class="item-right"><div class="item-pnl ${pnl>=0?'g':'r'}">${pnl>=0?'+':''}${pnlPct.toFixed(1)}%</div><div class="item-sub">$${cp>1?fmt(cp,2):cp.toFixed(4)}</div></div>
-      <div class="item-actions">
-        <button class="item-act-btn" onclick="openModal('crypto','${c.id}')" title="買入/賣出">⊕</button>
+  const header=`<div class="stock-thead" style="grid-template-columns:70px 80px 100px 100px 90px 72px 44px">
+    <div class="scol-name">幣種</div>
+    <div style="text-align:right">數量</div>
+    <div style="text-align:right">市值<br><span>現價USD</span></div>
+    <div style="text-align:right">總成本<br><span>單位成本</span></div>
+    <div style="text-align:right">損益</div>
+    <div style="text-align:right">報酬率</div>
+    <div></div>
+  </div>`;
+  const rows=cryptos.map(c=>{
+    const cp=c.currentPrice||c.costUSD;
+    const mvTWD=Math.round(cp*c.amount*FX.USD);
+    const costTWD=Math.round(c.costUSD*c.amount*FX.USD);
+    const pnl=mvTWD-costTWD;
+    const pnlPct=costTWD>0?pnl/costTWD*100:0;
+    const pnlSign=pnl>0?'+':pnl<0?'-':'';
+    const pnlColor=pnl>=0?'g':'r';
+    const amtStr=c.amount<0.001?c.amount.toFixed(6):c.amount<1?c.amount.toFixed(4):fmt(c.amount,4);
+    const priceStr=cp>1?fmt(cp,2):cp.toFixed(4);
+    return `<div class="stock-row" style="grid-template-columns:70px 80px 100px 100px 90px 72px 44px">
+      <div class="scol-name">
+        <div class="item-ticker tc" style="white-space:nowrap">${c.sym}</div>
+      </div>
+      <div style="text-align:right;font-size:12px">${amtStr}</div>
+      <div style="text-align:right">
+        <div class="scol-main">NT$${fmt(mvTWD)}</div>
+        <div class="scol-sub">$${priceStr}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="scol-main">NT$${fmt(costTWD)}</div>
+        <div class="scol-sub">$${fmt(c.costUSD,2)}</div>
+      </div>
+      <div style="text-align:right;font-size:12px;font-weight:500" class="${pnlColor}">${pnlSign}NT$${fmt(Math.abs(pnl))}</div>
+      <div style="text-align:right;font-size:12px;font-weight:500" class="${pnlColor}">${pnlSign}${Math.abs(pnlPct).toFixed(2)}%</div>
+      <div class="scol-act">
+        <button class="item-act-btn" onclick="openModal('crypto','${c.id}')">⊕</button>
         <button class="item-del" onclick="delCrypto('${c.id}')">×</button>
-      </div></div>`;
+      </div>
+    </div>`;
   }).join('');
+  el.innerHTML=`<div class="stock-table-wrap"><div class="stock-table-inner" style="min-width:556px">${header+rows}</div></div>`;
 }
 
 
